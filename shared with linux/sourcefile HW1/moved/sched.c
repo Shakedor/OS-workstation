@@ -1605,6 +1605,10 @@ void __init init_idle(task_t *idle, int cpu)
 	double_rq_unlock(idle_rq, rq);
 	set_tsk_need_resched(idle);
 	__restore_flags(flags);
+	/////////////////////////////
+	//add global list
+	// find where to deallocate
+	///////////////////////////
 }
 
 extern void init_timervecs(void);
