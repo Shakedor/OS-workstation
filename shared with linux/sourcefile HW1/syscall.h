@@ -291,4 +291,10 @@ extern asmlinkage long sys_recvmsg(int fd, struct msghdr *msg,
 				unsigned int flags);
 extern asmlinkage long sys_socketcall(int call, unsigned long *args);
 
+
+//OS HW1
+///////////////////////////////////////
+// add extern linkage to out function calls
+//////////////////////////////////////
+
 #endif /* _LINUX_SYSCALL_H */

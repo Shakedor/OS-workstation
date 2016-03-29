@@ -487,6 +487,7 @@ static void exit_notify(void)
 
 NORET_TYPE void do_exit(long code)
 {
+	//TODO deallocate process forbidden aceess log
 	struct task_struct *tsk = current;
 
 	if (in_interrupt())
