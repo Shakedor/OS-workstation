@@ -19,6 +19,31 @@ typedef enum ListResult_t {
 typedef void* ListElement;
 
 /**
+* Type of function for copying an element of the list.
+*
+* Such a function should be supplied to a list to allow it to copy its
+* elements. The function supplied should be able to dynamically copy the
+* object and return a pointer to a newly allocated object.
+* If this function fails for some reason, it should return NULL.
+*
+* For example, here is a proper function for copying a string that can be
+* used for storing strings in a list:
+* @code
+* ListElement copyString(ListElement str) {
+*   assert(str);
+*   char* copy = malloc(strlen(str) + 1);
+*   return copy ? strcpy(copy, str) : NULL;
+* }
+* @endcode
+*/
+typedef ListElement(*CopyListElement)(ListElement);
+
+/** Type of function for deallocating an element of the list */
+typedef void(*FreeListElement)(ListElement);
+
+
+
+/**
 * Allocates a new List.
 *
 * Creates a new empty list. This function receives the functions which will be
