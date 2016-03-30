@@ -1,6 +1,7 @@
 
 #include "mylist.h"
-
+#include <string.h>
+#include <stdlib.h>
 typedef void* Data;
 
 typedef struct node_t {
@@ -16,8 +17,6 @@ struct List_t {
 	Node node; // this is the iterator
 	CopyListElement copyElement;
 	FreeListElement freeElement;
-	CompareListElements compareArg;
-	FilterListElement filterArg;
 
 };
 
@@ -33,29 +32,7 @@ static ListElement listGoToFirst(List list){
 
 	return list->node->data;
 }
-
-
-//get place of element in a list, if element not found, return 0;
-static int listGetPlace(List list, ListElement element){
-	if(!list||!element){
-		return 0;
-	}
-	if(!list->node){
-		return 0;
-	}
-	ListElement currentElement=listGetFirst(list);
-	int place=1;
-	while(currentElement!=NULL){
-		if(list->compareArg(element,currentElement)==0){
-			return place;
-		}
-		place++;
-		currentElement=listGetNext(list);
-	}
-	// in case element not found
-	return 0;
-}
-
+  
 static ListResult listMoveToPlace(List list,int place){
 
 	//if place is 0 we put null in iterator
@@ -516,4 +493,39 @@ void listDestroy(List list){
 	return;
 }
 
+ListElement stringCopy(ListElement string){
+  if(!string){
+    return NULL;
+  }
+  char* strCopy = malloc(sizeof(char)* strlen(string) + 1 );
+  strcpy(strCopy, string);
+  return strCopy ? strCopy : NULL;
+}
 
+void stringDestroy(ListElement string){
+  if(!string)
+    return;
+  free(string);
+}
+
+int removeString(List l, ListElement string){
+  if( !list || !string )
+    return LIST_NULL_ARGUMENT;
+  for(Node t = l->head; t != NULL; t = t->next){
+    if(!strcmp((char*)(t->data), string)){
+      (t->previous)->next = t->next;
+      (t->next)->previous = t->previous;
+      free(t);
+      return LIST_SUCCESS;
+    }
+  }
+  return LIST_DOESNT_EXIST;
+}
+
+int isInList(List l, char* string){
+   LIST_FOR_EACH(char*, listGetFirst(l), l){
+    if(!strcmp(iterator, name))
+      return 1;
+  }
+   return 0;
+}

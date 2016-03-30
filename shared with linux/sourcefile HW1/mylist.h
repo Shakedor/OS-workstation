@@ -13,6 +13,7 @@ typedef enum ListResult_t {
 	LIST_NULL_ARGUMENT,
 	LIST_OUT_OF_MEMORY,
 	LIST_INVALID_CURRENT,
+	LIST_DOESNT_EXIST
 } ListResult;
 
 /** Element data type for list container */
@@ -231,6 +232,19 @@ ListResult listClear(List list);
 * done
 */
 void listDestroy(List list);
+
+// ---------------------------------- ADDED --FOR LIST OF STRINGS---------------------------------------
+
+ListElement stringCopy(ListElement string);
+
+void stringDestroy(ListElement string);
+
+// finds in a given list of strings a strings that is equal to the second parameter and, if exists, removes it from the list
+// returns:
+// LIST_NULL_ARGUMENT - if the arguments are invalid; LIST_SUCCESS - if the string was deleted; LIST_DOESNT_EXIST - if a string doesn't exist in the list
+ListResult removeString(List l, ListElement string);
+//returns 1 if a given string is in list, otherwise 0, its not allowed to send NULL as a parameter
+int isInList(List l, char* string);
 
 /**
 * Macro for iterating over a list.
