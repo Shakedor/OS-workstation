@@ -1,50 +1,9 @@
-//ifndef and stuff
+#ifndef BLOCKER_H_
+#define BLOCKER_H_
 
+#include "mylist.h"
 
-// add blocked list data strucutre
-
-// add utility functions to blockdList
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/** wrapper prototype
-int my_system_call (int p1, char *p2,int p3)
-{
-unsigned int res;
-__asm__
-(
- "int $0x80;"
- : "=a" (res)
- : "0" (244) ,"b" (p1) ,"c" (p2), "d" (p3)
- : "memory"
-);
- if (res>= (unsigned long)(-125))
- {
- errno = -res;
- res = -1;
- }
-return (int) res;
-}
-**/
-
+extern List blockedPrg = {0};
 
 int block_program(const char *name, unsigned int name_len) {
 unsigned int res;
@@ -130,3 +89,5 @@ __asm__
  }
 return (int) res;
 }
+
+#endif
