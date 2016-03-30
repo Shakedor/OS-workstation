@@ -784,9 +784,15 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		 * COW overhead when the child exec()s afterwards.
 		 */
 		current->need_resched = 1;
-		
-	//TODO reset forbidden access list
-
+	
+	//////////////////////////
+	//initialize forbidden access list
+	// (we need to check wether fork somehow copies the forbidden list)
+	/////////////////////////
+	
+	ListDestroy(p->forbidenList);
+	ListCreate(p->forbidenList);
+	
 fork_out:
 	return retval;
 
