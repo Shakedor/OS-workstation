@@ -1,5 +1,5 @@
-#ifndef LIST_H_
-#define LIST_H_
+#ifndef MYLIST_H_
+#define MYLIST_H_
 
 /** Type for defining the list */
 typedef struct List_t *List;
@@ -275,4 +275,4 @@ unsigned int min(unsigned int a, unsigned int b);
 		iterator ;\
 		iterator = listGetNext(list))
 
-#endif /* LIST_H_ */
+#endif /* MYLIST_H_ */

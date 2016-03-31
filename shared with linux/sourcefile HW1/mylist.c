@@ -1,8 +1,8 @@
 
 #include "mylist.h"
-//#include <linux/string.h>
-#include <string.h>
-#include <stdlib.h>
+#include <linux/string.h>
+//#include <string.h>
+#include <stdlib.h> // ????
 typedef void* Data;
 
 typedef struct node_t {
@@ -52,7 +52,7 @@ static ListResult listMoveToPlace(List list,int place){
 // destroys current node on iterator
 static void destroyNode(List list){
 	list->freeElement(list->node->data);
-	free(list->node);
+	kfree(list->node);
 }
 
 
@@ -71,13 +71,13 @@ static void NodesDestroy(Node head,List list){
 	Node next= head->next;
 	if (next==NULL){
 		list->freeElement(head->data);
-		free(head);
+		kfree(head);
 		return;
 	}
 	// recursive call
 	NodesDestroy(next,list);
 	list->freeElement(head->data);
-	free(head);
+	kfree(head);
 	return;
 }
 
@@ -187,7 +187,7 @@ List listCreate(CopyListElement copyElement, FreeListElement freeElement) {
 		return NULL;
 	}
 
-	List list = malloc(sizeof(*list));
+	List list = kmalloc(sizeof(*list));
 	if (list == NULL) {
 		return NULL;
 	}
@@ -210,7 +210,7 @@ List listCopy(List list){
 	}
 	ListResult nodeCopied=nodesCopy(list,listCopy);
 	if(nodeCopied==LIST_OUT_OF_MEMORY){
-		free(listCopy);
+		kfree(listCopy);
 		return NULL;
 	}
 	listCopy->copyElement=list->copyElement;
@@ -282,14 +282,14 @@ Node createNode(CopyListElement copyElement,ListElement element){
 	if(!copyElement||!element){
 		return NULL;
 	}
-	Node newNode=malloc(sizeof(*newNode));
+	Node newNode=kmalloc(sizeof(*newNode));
 	if (newNode == NULL) {
 		return NULL;
 	}
 
 	newNode->data=copyElement(element);
 	if(newNode->data==NULL){
-		free (newNode);
+		kfree (newNode);
 		return NULL;
 	}
 	newNode->next=NULL;
@@ -365,7 +365,7 @@ ListResult listInsertBeforeCurrent(List list, ListElement element){
 	}
 
 	if(!list->node){
-		free(newNode);
+		kfree(newNode);
 		return LIST_INVALID_CURRENT;
 	}
 
@@ -488,7 +488,7 @@ void listDestroy(List list){
 	}
 
 	listClear(list);
-	free(list);
+	kfree(list);
 	return;
 }
 
@@ -496,7 +496,9 @@ ListElement stringCopy(ListElement string){
   if(!string){
     return NULL;
   }
-  char* strCopy = malloc(sizeof(char)* strlen(string) + 1 );
+  char* strCopy = kmalloc(sizeof(char)* strlen(string) + 1 );
+  if(!strCopy)
+    return NULL;
   strcpy(strCopy, string);
   return strCopy ? strCopy : NULL;
 }
@@ -504,7 +506,7 @@ ListElement stringCopy(ListElement string){
 void stringDestroy(ListElement string){
   if(!string)
     return;
-  free(string);
+  kfree(string);
 }
 
 ListResult removeString(List l, ListElement string){
@@ -514,7 +516,7 @@ ListResult removeString(List l, ListElement string){
     if(!strcmp((char*)(t->data), string)){
       (t->previous)->next = t->next;
       (t->next)->previous = t->previous;
-      free(t);
+      kfree(t);
       return LIST_SUCCESS;
     }
   }
@@ -522,13 +524,13 @@ ListResult removeString(List l, ListElement string){
 }
 
 ListResult isInList(List l, char* string){
-  if(!l)
+  if(!l || !string)
     return LIST_NULL_ARGUMENT; 
-   LIST_FOR_EACH(char*, listGetFirst(l), l){
-    if(!strcmp(iterator, name))
+   LIST_FOREACH(char*, itr, l){
+    if(!strcmp(itr, string))
       return LIST_IS_IN;
   }
-   return LIST_DOESNT_EXIS;
+   return LIST_DOESNT_EXIST;
 }
 
 
