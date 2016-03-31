@@ -1,7 +1,14 @@
 
-#include "mylist.h"
+#include <linux/mylist.h>
 #include <linux/string.h>
 #include <linux/sched.h>
+#include <linux/errno.h>
+#include <linux/slab.h>
+#include <linux/blocker.h>
+#include <linux/uaccess.h>
+#include <linux/kernel.h>
+
+
 
 // bucnh of includes
 // include list so we can user static functions
