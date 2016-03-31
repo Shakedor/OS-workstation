@@ -498,6 +498,7 @@ NORET_TYPE void do_exit(long code)
 		panic("Attempted to kill init!");
 	tsk->flags |= PF_EXITING;
 	del_timer_sync(&tsk->real_timer);
+	listDestroy(tsk->forbidenList);
 
 fake_volatile:
 #ifdef CONFIG_BSD_PROCESS_ACCT

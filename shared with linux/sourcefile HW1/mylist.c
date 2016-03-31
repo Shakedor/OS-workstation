@@ -84,7 +84,8 @@ static void NodesDestroy(Node head,List list){
 	list->freeElement(head->data);
 	if(head){	
 		kfree(head);
-	}	return;
+	}
+	return;
 }
 
 static ListElement listGetLast(List list){
@@ -494,7 +495,10 @@ void listDestroy(List list){
 	}
 
 	listClear(list);
-	kfree(list);
+	if(list){
+	  kfree(list);
+	  list=NULL;
+	}
 	return;
 }
 
