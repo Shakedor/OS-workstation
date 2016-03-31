@@ -73,7 +73,7 @@ int sys_get_blocked_count(void){
 }
 
 
-int sys_get_forbidden_tries (int pid, char log[][256], unsigned int n){
+int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 // if n<=0 ret -EINVAL
 	if(n<=0){
 		return EINVAL;
