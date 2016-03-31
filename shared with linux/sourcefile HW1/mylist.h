@@ -271,7 +271,8 @@ extern unsigned int mymin(unsigned int a, unsigned int b);
 * @param list the list to iterate over
 */
 #define LIST_FOREACH(type,iterator,list) \
-	for(type iterator = listGetFirst(list) ; \
+	type iterator;\
+	for(iterator = listGetFirst(list) ; \
 		iterator ;\
 		iterator = listGetNext(list))
 

@@ -42,7 +42,8 @@ static ListResult listMoveToPlace(List list,int place){
 	//list GET first, set counter to 1
 	// till we get to original place, list GEt next.
 	listGetFirst(list);
-	for(int i=0;i<place-1;i++){
+	int i=0;
+	for( i=0;i<place-1;i++){
 		listGetNext(list);
 	}
 	return LIST_SUCCESS;
@@ -52,7 +53,9 @@ static ListResult listMoveToPlace(List list,int place){
 // destroys current node on iterator
 static void destroyNode(List list){
 	list->freeElement(list->node->data);
-	kfree(list->node);
+	if(!list->node){
+		kfree(list->node);
+	}
 }
 
 
@@ -71,14 +74,17 @@ static void NodesDestroy(Node head,List list){
 	Node next= head->next;
 	if (next==NULL){
 		list->freeElement(head->data);
-		kfree(head);
+		if(head){	
+			kfree(head);
+		}
 		return;
 	}
 	// recursive call
 	NodesDestroy(next,list);
 	list->freeElement(head->data);
-	kfree(head);
-	return;
+	if(head){	
+		kfree(head);
+	}	return;
 }
 
 static ListElement listGetLast(List list){
@@ -187,7 +193,7 @@ List listCreate(CopyListElement copyElement, FreeListElement freeElement) {
 		return NULL;
 	}
 
-	List list = kmalloc(sizeof(*list));
+	List list = kmalloc(sizeof(*list),GFP_KERNEL);
 	if (list == NULL) {
 		return NULL;
 	}
@@ -282,7 +288,7 @@ Node createNode(CopyListElement copyElement,ListElement element){
 	if(!copyElement||!element){
 		return NULL;
 	}
-	Node newNode=kmalloc(sizeof(*newNode));
+	Node newNode=kmalloc(sizeof(*newNode),GFP_KERNEL);
 	if (newNode == NULL) {
 		return NULL;
 	}
@@ -496,7 +502,7 @@ ListElement stringCopy(ListElement string){
   if(!string){
     return NULL;
   }
-  char* strCopy = kmalloc(sizeof(char)* strlen(string) + 1 );
+  char* strCopy = kmalloc(sizeof(char)* strlen(string) + 1 ,GFP_KERNEL);
   if(!strCopy)
     return NULL;
   strcpy(strCopy, string);
@@ -512,7 +518,8 @@ void stringDestroy(ListElement string){
 ListResult removeString(List l, ListElement string){
   if( !l || !string )
     return LIST_NULL_ARGUMENT;
-  for(Node t = l->head; t != NULL; t = t->next){
+  Node t=NULL;
+  for(t = l->head; t != NULL; t = t->next){
     if(!strcmp((char*)(t->data), string)){
       (t->previous)->next = t->next;
       (t->next)->previous = t->previous;
@@ -534,10 +541,10 @@ ListResult isInList(List l, char* string){
 }
 
 
-unsigned int max(unsigned int  a, unsigned int b){
+unsigned int mymax(unsigned int  a, unsigned int b){
   return a >= b ? a : b; 
 }
 
-unsigned int min(unsigned int  a, unsigned int b){
+unsigned int mymin(unsigned int  a, unsigned int b){
   return a > b ? b : a; 
 }
