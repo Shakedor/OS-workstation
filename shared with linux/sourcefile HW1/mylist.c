@@ -1,5 +1,6 @@
 
 #include "mylist.h"
+//#include <linux/string.h>
 #include <string.h>
 #include <stdlib.h>
 typedef void* Data;
@@ -9,8 +10,6 @@ typedef struct node_t {
 	struct node_t* next;
 	struct node_t* previous;
 }*Node;
-
-
 
 struct List_t {
 	Node head;
@@ -107,7 +106,7 @@ static ListResult nodesCopy(List list, List listCopy){
 	}
 	Node temporaryNode=list->node;
 	// copies first node
-	bool badMalloc=false;
+	int badMalloc=0;
 	listGetFirst(list);
 	ListResult result=listInsertFirst(listCopy,list->node->data);
 
@@ -116,14 +115,14 @@ static ListResult nodesCopy(List list, List listCopy){
 
 	if(result!=LIST_SUCCESS){
 		destroyNode(listCopy);
-		badMalloc=true;
+		badMalloc=1;
 	}
 	//copies rest of nodes
 
 	while(listGetNext(list)&&!badMalloc){
 		result = listInsertLast(listCopy,list->node->data);
 		if(result!=LIST_SUCCESS){
-			badMalloc=true;
+			badMalloc=1;
 			break;
 		}
 
@@ -347,7 +346,6 @@ ListResult listInsertLast(List list, ListElement element){
 	return LIST_SUCCESS;
 
 }
-
 ListResult listInsertBeforeCurrent(List list, ListElement element){
 	if(!list){
 		return LIST_NULL_ARGUMENT;
@@ -394,6 +392,7 @@ ListResult listInsertBeforeCurrent(List list, ListElement element){
 
 }
 
+
 ListResult listInsertAfterCurrent(List list, ListElement element){
 	if(!list){
 		return LIST_NULL_ARGUMENT;
@@ -431,6 +430,7 @@ ListResult listInsertAfterCurrent(List list, ListElement element){
 	return LIST_SUCCESS;
 
 }
+
 
 ListResult listRemoveCurrent(List list){
 	if(!list){
@@ -470,7 +470,6 @@ ListResult listRemoveCurrent(List list){
 
 
 }
-
 ListResult listClear(List list){
 	if(!list){
 		return LIST_NULL_ARGUMENT;
@@ -508,8 +507,8 @@ void stringDestroy(ListElement string){
   free(string);
 }
 
-int removeString(List l, ListElement string){
-  if( !list || !string )
+ListResult removeString(List l, ListElement string){
+  if( !l || !string )
     return LIST_NULL_ARGUMENT;
   for(Node t = l->head; t != NULL; t = t->next){
     if(!strcmp((char*)(t->data), string)){
@@ -522,10 +521,21 @@ int removeString(List l, ListElement string){
   return LIST_DOESNT_EXIST;
 }
 
-int isInList(List l, char* string){
+ListResult isInList(List l, char* string){
+  if(!l)
+    return LIST_NULL_ARGUMENT; 
    LIST_FOR_EACH(char*, listGetFirst(l), l){
     if(!strcmp(iterator, name))
-      return 1;
+      return LIST_IS_IN;
   }
-   return 0;
+   return LIST_DOESNT_EXIS;
+}
+
+
+unsigned int max(unsigned int  a, unsigned int b){
+  return a >= b ? a : b; 
+}
+
+unsigned int min(unsigned int  a, unsigned int b){
+  return a > b ? b : a; 
 }

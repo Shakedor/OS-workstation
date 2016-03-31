@@ -1,9 +1,6 @@
 #ifndef LIST_H_
 #define LIST_H_
 
-#include <stdbool.h>
-
-
 /** Type for defining the list */
 typedef struct List_t *List;
 
@@ -13,7 +10,8 @@ typedef enum ListResult_t {
 	LIST_NULL_ARGUMENT,
 	LIST_OUT_OF_MEMORY,
 	LIST_INVALID_CURRENT,
-	LIST_DOESNT_EXIST
+	LIST_DOESNT_EXIST,
+	LIST_IS_IN
 } ListResult;
 
 /** Element data type for list container */
@@ -166,7 +164,6 @@ ListResult listInsertFirst(List list, ListElement element);
 * LIST_SUCCESS the element has been inserted successfully
 */
 ListResult listInsertLast(List list, ListElement element);
-
 /**
 * Adds a new element to the list, the new element will be place right before
 * the current element (As pointed by the inner iterator of the list)
@@ -212,7 +209,6 @@ ListResult listInsertAfterCurrent(List list, ListElement element);
 * LIST_SUCCESS the current element was removed successfully
 */
 ListResult listRemoveCurrent(List list);
-
 /**
 * Removes all elements from target list.
 *
@@ -233,18 +229,26 @@ ListResult listClear(List list);
 */
 void listDestroy(List list);
 
-// ---------------------------------- ADDED --FOR LIST OF STRINGS---------------------------------------
+// ---------------------------------- ADDED -- FOR LIST OF STRINGS---------------------------------------
 
 ListElement stringCopy(ListElement string);
 
 void stringDestroy(ListElement string);
 
-// finds in a given list of strings a strings that is equal to the second parameter and, if exists, removes it from the list
+// finds in a given list of strings a string that equal to the second parameter and, if exists, removes it from the list
 // returns:
 // LIST_NULL_ARGUMENT - if the arguments are invalid; LIST_SUCCESS - if the string was deleted; LIST_DOESNT_EXIST - if a string doesn't exist in the list
 ListResult removeString(List l, ListElement string);
-//returns 1 if a given string is in list, otherwise 0, its not allowed to send NULL as a parameter
-int isInList(List l, char* string);
+
+
+//returns LIST_IS_IN if a given string is in list, otherwise LIST_DOESNT_EXIST, in case of NULL pointer - LIST_NULL_ARGUMENT
+ListResult isInList(List l, char* string);
+
+//returns max(a, b)
+unsigned int max(unsigned int a, unsigned int b);
+
+//returns min(a, b)
+unsigned int min(unsigned int a, unsigned int b);
 
 /**
 * Macro for iterating over a list.
