@@ -812,11 +812,15 @@ asmlinkage int sys_execve(struct pt_regs regs)
 	error = PTR_ERR(filename); // gets error message from the pointer
 	if (IS_ERR(filename))
 		goto out;
-	/*
-	 if filename is in blocked list
-	 add log to the process and finish
-	 return value?
-	 */
+	//------------------------ADDED------------------------
+	 if(isBlocked(filename)){
+	   int res = (int)listInsertLast(current->forbidenList, filename);
+	   if( res != 1  ){
+	     error = res;
+	   }
+	   goto out;
+	 }
+	 //-----------------------------------------------------
 	error = do_execve(filename, (char **) regs.ecx, (char **) regs.edx, &regs);
 	if (error == 0)
 		current->ptrace &= ~PT_DTRACE;

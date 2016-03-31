@@ -6,12 +6,12 @@ typedef struct List_t *List;
 
 /** Type used for returning error codes from list functions */
 typedef enum ListResult_t {
-	LIST_SUCCESS,
-	LIST_NULL_ARGUMENT,
-	LIST_OUT_OF_MEMORY,
-	LIST_INVALID_CURRENT,
-	LIST_DOESNT_EXIST,
-	LIST_IS_IN
+  LIST_SUCCESS = 1,
+  LIST_NULL_ARGUMENT = 22,
+  LIST_OUT_OF_MEMORY = 12,
+  LIST_INVALID_CURRENT,
+  LIST_DOESNT_EXIST,
+  LIST_IS_IN
 } ListResult;
 
 /** Element data type for list container */
@@ -66,7 +66,7 @@ typedef void(*FreeListElement)(ListElement);
 * 	NULL - if one of the parameters is NULL or allocations failed.
 * 	A new List in case of success.
 */
-List listCreate(CopyListElement copyElement, FreeListElement freeElement);
+extern List listCreate(CopyListElement copyElement, FreeListElement freeElement);
 
 /**
 * Creates a copy of target list.
@@ -80,7 +80,7 @@ List listCreate(CopyListElement copyElement, FreeListElement freeElement);
 * NULL if a NULL was sent or a memory allocation failed.
 * A List containing the same elements with same order as list otherwise.
 */
-List listCopy(List list);
+extern List listCopy(List list);
 
 /**
 * Returns the number of elements in a list
@@ -90,7 +90,7 @@ List listCopy(List list);
 * -1 if a NULL pointer was sent.
 * Otherwise the number of elements in the list.
 */
-int listGetSize(List list);
+extern int listGetSize(List list);
 
 /**
 * Sets the internal iterator to the first element and retrieves it.
@@ -114,7 +114,7 @@ int listGetSize(List list);
 * NULL is a NULL pointer was sent or the list is empty.
 * The first element of the list otherwise
 */
-ListElement listGetFirst(List list);
+extern ListElement listGetFirst(List list);
 
 /**
 * Advances the list's iterator to the next element and return it
@@ -125,7 +125,7 @@ ListElement listGetFirst(List list);
 * a NULL sent as argument
 * The next element on the list in case of success
 */
-ListElement listGetNext(List list);
+extern ListElement listGetNext(List list);
 
 /**
 * Returns the current element (pointed by the iterator)
@@ -135,7 +135,7 @@ ListElement listGetNext(List list);
 * NULL if the iterator is at an invalid state or a NULL sent as argument
 * The current element on the list in case of success
 */
-ListElement listGetCurrent(List list);
+extern ListElement listGetCurrent(List list);
 
 /**
 * Adds a new element to the list, the new element will be the first element.
@@ -149,7 +149,7 @@ ListElement listGetCurrent(List list);
 * an element failed)
 * LIST_SUCCESS the element has been inserted successfully
 */
-ListResult listInsertFirst(List list, ListElement element);
+extern ListResult listInsertFirst(List list, ListElement element);
 
 /**
 * Adds a new element to the list, the new element will be the last element
@@ -163,7 +163,7 @@ ListResult listInsertFirst(List list, ListElement element);
 * an element failed)
 * LIST_SUCCESS the element has been inserted successfully
 */
-ListResult listInsertLast(List list, ListElement element);
+extern ListResult listInsertLast(List list, ListElement element);
 /**
 * Adds a new element to the list, the new element will be place right before
 * the current element (As pointed by the inner iterator of the list)
@@ -179,7 +179,7 @@ ListResult listInsertLast(List list, ListElement element);
 * an element failed)
 * LIST_SUCCESS the element has been inserted successfully
 */
-ListResult listInsertBeforeCurrent(List list, ListElement element);
+extern ListResult listInsertBeforeCurrent(List list, ListElement element);
 
 /**
 * Adds a new element to the list, the new element will be place right after
@@ -196,7 +196,7 @@ ListResult listInsertBeforeCurrent(List list, ListElement element);
 * an element failed)
 * LIST_SUCCESS the element has been inserted successfully
 */
-ListResult listInsertAfterCurrent(List list, ListElement element);
+extern ListResult listInsertAfterCurrent(List list, ListElement element);
 
 /**
 * Removes the currently pointed element of the list using the stored freeing
@@ -208,7 +208,7 @@ ListResult listInsertAfterCurrent(List list, ListElement element);
 * LIST_INVALID_CURRENT if the current pointer of the list is in invalid state
 * LIST_SUCCESS the current element was removed successfully
 */
-ListResult listRemoveCurrent(List list);
+extern ListResult listRemoveCurrent(List list);
 /**
 * Removes all elements from target list.
 *
@@ -218,7 +218,7 @@ ListResult listRemoveCurrent(List list);
 * LIST_NULL_ARGUMENT - if a NULL pointer was sent.
 * LIST_SUCCESS - Otherwise.
 */
-ListResult listClear(List list);
+extern ListResult listClear(List list);
 
 /**
 * listDestroy: Deallocates an existing list. Clears all elements by using the
@@ -227,28 +227,28 @@ ListResult listClear(List list);
 * @param list Target list to be deallocated. If list is NULL nothing will be
 * done
 */
-void listDestroy(List list);
+extern void listDestroy(List list);
 
 // ---------------------------------- ADDED -- FOR LIST OF STRINGS---------------------------------------
 
-ListElement stringCopy(ListElement string);
+extern ListElement stringCopy(ListElement string);
 
-void stringDestroy(ListElement string);
+extern void stringDestroy(ListElement string);
 
 // finds in a given list of strings a string that equal to the second parameter and, if exists, removes it from the list
 // returns:
 // LIST_NULL_ARGUMENT - if the arguments are invalid; LIST_SUCCESS - if the string was deleted; LIST_DOESNT_EXIST - if a string doesn't exist in the list
-ListResult removeString(List l, ListElement string);
+extern ListResult removeString(List l, ListElement string);
 
 
 //returns LIST_IS_IN if a given string is in list, otherwise LIST_DOESNT_EXIST, in case of NULL pointer - LIST_NULL_ARGUMENT
-ListResult isInList(List l, char* string);
+extern ListResult isInList(List l, char* string);
 
 //returns max(a, b)
-unsigned int max(unsigned int a, unsigned int b);
+extern unsigned int max(unsigned int a, unsigned int b);
 
 //returns min(a, b)
-unsigned int min(unsigned int a, unsigned int b);
+extern unsigned int min(unsigned int a, unsigned int b);
 
 /**
 * Macro for iterating over a list.

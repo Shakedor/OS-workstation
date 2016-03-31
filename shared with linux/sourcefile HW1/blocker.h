@@ -1,8 +1,6 @@
 #ifndef BLOCKER_H_
 #define BLOCKER_H_
 
-#include "mylist.h"
-
 extern List blockedPrg = {0};
 
 int block_program(const char *name, unsigned int name_len) {
