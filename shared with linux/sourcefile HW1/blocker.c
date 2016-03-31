@@ -56,12 +56,9 @@ int sys_is_program_blocked(const char *name, unsigned int name_len){
 	if(!name || name_len <= 0 )
 	  return EINVAL;
 	//check if in list
-	if(isInList(blockedPrg, name) == LIST_IS_IN)
-	  return 1;
-	return 0;
 	//if yes return 0 (blocked)
 	//else return 1(not blocked)
-	
+	return isBlocked(name);
 }
 
 int sys_get_blocked_count(void){
@@ -116,8 +113,14 @@ int sys_get_forbidden_tries (int pid, char log[][256], unsigned int n){
 }
 
 
-
-
+int isBlocked(const char *name){
+  if(!name)
+    return EINVAL;
+  //check if in list
+  if(isInList(blockedPrg, name) == LIST_IS_IN)
+    return 1;
+  return 0;
+}
 
 
 

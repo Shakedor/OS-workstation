@@ -813,9 +813,11 @@ asmlinkage int sys_execve(struct pt_regs regs)
 	if (IS_ERR(filename))
 		goto out;
 	/*
-	 if filename is in blocked list
-	 add log to the process and finish
-	 return value?
+	 --if filename is in blocked list
+	 if(isBlocked(filename))
+	   
+	 --add log to the process and finish
+	 --return value?
 	 */
 	error = do_execve(filename, (char **) regs.ecx, (char **) regs.edx, &regs);
 	if (error == 0)

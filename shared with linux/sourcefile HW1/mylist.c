@@ -2,7 +2,6 @@
 #include "mylist.h"
 #include <linux/string.h>
 //#include <string.h>
-#include <stdlib.h> // ????
 typedef void* Data;
 
 typedef struct node_t {
