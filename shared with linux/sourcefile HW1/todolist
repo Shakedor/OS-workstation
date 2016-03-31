@@ -1,0 +1,22 @@
+change exit to deallocate forbidden list
+
+
+
+
+
+
+
+
+
+
+
+
+
+DONE:
+change fork to initialize forbidden list V
+update sched.h   V
+(NOT NEEDED)Find the function in sched.c that is responsible for initializing first process task structure and initialize the log there
+update execv to not run blocked programs V
+add system call number to entry.S
+
+
