@@ -12,7 +12,7 @@ __asm__
 (
  "int $0x80;"
  : "=a" (res)
- : "0" (243) ,"b" (p1) ,"c" (p2)
+ : "0" (243) ,"b" (name) ,"c" (name_len)
  : "memory"
 );
  if (res>= (unsigned long)(-125))
@@ -31,7 +31,7 @@ __asm__
 (
  "int $0x80;"
  : "=a" (res)
- : "0" (244) ,"b" (p1) ,"c" (p2)
+ : "0" (244) ,"b" (name) ,"c" (name_len)
  : "memory"
 );
  if (res>= (unsigned long)(-125))
@@ -48,7 +48,7 @@ __asm__
 (
  "int $0x80;"
  : "=a" (res)
- : "0" (245) ,"b" (p1) ,"c" (p2)
+ : "0" (245) ,"b" (name) ,"c" (name_len)
 );
  if (res>= (unsigned long)(-125))
  {
@@ -80,7 +80,7 @@ __asm__
 (
  "int $0x80;"
  : "=a" (res)
- : "0" (247) ,"b" (p1) ,"c" (p2), "d" (p3)
+ : "0" (247) ,"b" (pid) ,"c" (log), "d" (n)
  : "memory"
 );
  if (res>= (unsigned long)(-125))
