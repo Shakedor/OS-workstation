@@ -98,8 +98,8 @@ int sys_get_forbidden_tries (int pid, char log[][256], unsigned int n){
 	// get the process' forbidden access log
 	List forbiddenLog=currStruct->forbidenList;
 	unsigned int logSize=listGetSize(forbiddenLog);
-	unsigned int minSize=min(logSize,n);
-	unsigned int maxSize=max(logSize,n);
+	unsigned int minSize=mymin(logSize,n);
+	unsigned int maxSize=mymax(logSize,n);
 	// for min(n,len of log)
 	// put in char** param the log messages (Actually copy perhaps using the kernel copy functions)
 	// put NULL in remaining spots

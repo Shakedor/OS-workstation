@@ -245,10 +245,10 @@ extern ListResult removeString(List l, ListElement string);
 extern ListResult isInList(List l, char* string);
 
 //returns max(a, b)
-extern unsigned int max(unsigned int a, unsigned int b);
+extern unsigned int mymax(unsigned int a, unsigned int b);
 
 //returns min(a, b)
-extern unsigned int min(unsigned int a, unsigned int b);
+extern unsigned int mymin(unsigned int a, unsigned int b);
 
 /**
 * Macro for iterating over a list.
