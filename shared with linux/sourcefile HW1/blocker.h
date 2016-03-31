@@ -1,7 +1,10 @@
 #ifndef BLOCKER_H_
 #define BLOCKER_H_
 
-extern List blockedPrg = {0};
+#include <linux/unistd.h>
+#include <linux/types.h>
+
+List blockedPrg = {0};
 
 int block_program(const char *name, unsigned int name_len) {
 unsigned int res;
@@ -87,5 +90,8 @@ __asm__
  }
 return (int) res;
 }
+
+
+int isBlocked(const char *name);
 
 #endif

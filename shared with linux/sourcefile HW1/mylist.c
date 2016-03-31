@@ -284,7 +284,7 @@ ListElement listGetCurrent(List list){
 
 }
 
-Node createNode(CopyListElement copyElement,ListElement element){
+Node createNode(CopyListElement copyElement,const ListElement element){
 
 	if(!copyElement||!element){
 		return NULL;
@@ -304,7 +304,7 @@ Node createNode(CopyListElement copyElement,ListElement element){
 	return newNode;
 }
 
-ListResult listInsertFirst(List list, ListElement element){
+ListResult listInsertFirst(List list,const ListElement element){
 	if(!list){
 		return LIST_NULL_ARGUMENT;
 	}
@@ -326,7 +326,7 @@ ListResult listInsertFirst(List list, ListElement element){
 
 }
 
-ListResult listInsertLast(List list, ListElement element){
+ListResult listInsertLast(List list,const ListElement element){
 	if(!list){
 		return LIST_NULL_ARGUMENT;
 	}
@@ -353,7 +353,7 @@ ListResult listInsertLast(List list, ListElement element){
 	return LIST_SUCCESS;
 
 }
-ListResult listInsertBeforeCurrent(List list, ListElement element){
+ListResult listInsertBeforeCurrent(List list,const ListElement element){
 	if(!list){
 		return LIST_NULL_ARGUMENT;
 	}
@@ -400,7 +400,7 @@ ListResult listInsertBeforeCurrent(List list, ListElement element){
 }
 
 
-ListResult listInsertAfterCurrent(List list, ListElement element){
+ListResult listInsertAfterCurrent(List list,const ListElement element){
 	if(!list){
 		return LIST_NULL_ARGUMENT;
 	}
@@ -502,7 +502,7 @@ void listDestroy(List list){
 	return;
 }
 
-ListElement stringCopy(ListElement string){
+ListElement stringCopy(const ListElement string){
   if(!string){
     return NULL;
   }
@@ -513,13 +513,13 @@ ListElement stringCopy(ListElement string){
   return strCopy ? strCopy : NULL;
 }
 
-void stringDestroy(ListElement string){
+void stringDestroy(const ListElement string){
   if(!string)
     return;
   kfree(string);
 }
 
-ListResult removeString(List l, ListElement string){
+ListResult removeString(List l,const ListElement string){
   if( !l || !string )
     return LIST_NULL_ARGUMENT;
   Node t=NULL;
@@ -534,7 +534,7 @@ ListResult removeString(List l, ListElement string){
   return LIST_DOESNT_EXIST;
 }
 
-ListResult isInList(List l, char* string){
+ListResult isInList(List l, const char* string){
   if(!l || !string)
     return LIST_NULL_ARGUMENT; 
    LIST_FOREACH(char*, itr, l){

@@ -149,7 +149,7 @@ extern ListElement listGetCurrent(List list);
 * an element failed)
 * LIST_SUCCESS the element has been inserted successfully
 */
-extern ListResult listInsertFirst(List list, ListElement element);
+extern ListResult listInsertFirst(List list,const ListElement element);
 
 /**
 * Adds a new element to the list, the new element will be the last element
@@ -163,7 +163,7 @@ extern ListResult listInsertFirst(List list, ListElement element);
 * an element failed)
 * LIST_SUCCESS the element has been inserted successfully
 */
-extern ListResult listInsertLast(List list, ListElement element);
+extern ListResult listInsertLast(List list,const ListElement element);
 /**
 * Adds a new element to the list, the new element will be place right before
 * the current element (As pointed by the inner iterator of the list)
@@ -179,7 +179,7 @@ extern ListResult listInsertLast(List list, ListElement element);
 * an element failed)
 * LIST_SUCCESS the element has been inserted successfully
 */
-extern ListResult listInsertBeforeCurrent(List list, ListElement element);
+extern ListResult listInsertBeforeCurrent(List list,const ListElement element);
 
 /**
 * Adds a new element to the list, the new element will be place right after
@@ -196,7 +196,7 @@ extern ListResult listInsertBeforeCurrent(List list, ListElement element);
 * an element failed)
 * LIST_SUCCESS the element has been inserted successfully
 */
-extern ListResult listInsertAfterCurrent(List list, ListElement element);
+extern ListResult listInsertAfterCurrent(List list,const ListElement element);
 
 /**
 * Removes the currently pointed element of the list using the stored freeing
@@ -231,18 +231,18 @@ extern void listDestroy(List list);
 
 // ---------------------------------- ADDED -- FOR LIST OF STRINGS---------------------------------------
 
-extern ListElement stringCopy(ListElement string);
+extern ListElement stringCopy(const ListElement string);
 
-extern void stringDestroy(ListElement string);
+extern void stringDestroy(const ListElement string);
 
 // finds in a given list of strings a string that equal to the second parameter and, if exists, removes it from the list
 // returns:
 // LIST_NULL_ARGUMENT - if the arguments are invalid; LIST_SUCCESS - if the string was deleted; LIST_DOESNT_EXIST - if a string doesn't exist in the list
-extern ListResult removeString(List l, ListElement string);
+extern ListResult removeString(List l,const ListElement string);
 
 
 //returns LIST_IS_IN if a given string is in list, otherwise LIST_DOESNT_EXIST, in case of NULL pointer - LIST_NULL_ARGUMENT
-extern ListResult isInList(List l, char* string);
+extern ListResult isInList(List l, const char* string);
 
 //returns max(a, b)
 extern unsigned int mymax(unsigned int a, unsigned int b);

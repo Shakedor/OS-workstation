@@ -5,7 +5,7 @@
 #include <linux/errno.h>
 #include <linux/slab.h>
 #include <linux/blocker.h>
-#include <linux/uaccess.h>
+//#include <linux/uaccess.h>
 #include <linux/kernel.h>
 
 
