@@ -62,7 +62,7 @@ int sys_is_program_blocked(const char *name, unsigned int name_len){
 }
 
 int sys_get_blocked_count(void){
- 
+	return(ListGetSize(blockedPrg));
 }
 
 
