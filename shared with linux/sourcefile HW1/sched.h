@@ -27,6 +27,7 @@ extern unsigned long event;
 #include <linux/securebits.h>
 #include <linux/fs_struct.h>
 #include <linux/low-latency.h>
+#include <linux/mylist.h>
 
 struct exec_domain;
 
@@ -561,7 +562,7 @@ extern struct exec_domain	default_exec_domain;
     blocked:		{{0}},						\
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
-	forbidenList:   {0}\
+	forbidenList:   0,							\
 
 	
 	
