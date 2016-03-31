@@ -656,7 +656,7 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_get_forbidden_tries)
 	
 	
-////////////////////////////////
+//////////////////////////////// (5 lines up)
 // add symbols for our system calls
 ///////////////////////////////
 

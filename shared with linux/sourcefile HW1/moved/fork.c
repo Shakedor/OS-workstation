@@ -10,7 +10,7 @@
  * Fork is rather simple, once you get the hang of it, but the memory
  * management can be a bitch. See 'mm/memory.c': 'copy_page_range()'
  */
-
+#include <linux/mylist.h>
 #include <linux/config.h>
 #include <linux/slab.h>
 #include <linux/init.h>
@@ -790,8 +790,8 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	// (we need to check wether fork somehow copies the forbidden list)
 	/////////////////////////
 	
-	ListDestroy(p->forbidenList);
-	ListCreate(p->forbidenList);
+	listDestroy(p->forbidenList);
+	p->forbidenList=listCreate(stringCopy,stringDestroy);
 	
 fork_out:
 	return retval;
