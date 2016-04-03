@@ -4,7 +4,7 @@
 #include <linux/errno.h>
 #include <linux/slab.h>
 #include <linux/blocker.h>
-#include <linux/uaccess.h>
+//#include <linux/uaccess.h>
 #include <linux/kernel.h>
 
 
@@ -113,15 +113,16 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	// put NULL in remaining spots
 	
 	 int i;
-	 char* res=NUll;
-	for( i=0,ListElement curr=listGetFirst(forbiddenLog); i<minSize;i++,listGetNext(forbiddenLog)){
+	 char* curr=NULL;
+	 char* res=NULL;
+	for( i=0, curr=listGetFirst(forbiddenLog); i<minSize;i++,listGetNext(forbiddenLog)){
 		res=strcpy(log[i],curr);
 		if(res==NULL){
 			return(-1);
 		}
 	}
 	for( i=minSize; i<n; i++){
-		log[i]=NULL;
+		log[i][0]=0;
 	}
 	
 	//return number of entries copied
