@@ -1,11 +1,9 @@
 #ifndef BLOCKER_H_
 #define BLOCKER_H_
 
-#include <linux/mylist.h>
 #include <linux/unistd.h>
 #include <linux/types.h>
 
-List blockedPrg = {0};
 
 int block_program(const char *name, unsigned int name_len) {
 unsigned int res;

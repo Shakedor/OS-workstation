@@ -7,7 +7,8 @@
 //#include <linux/uaccess.h>
 #include <linux/kernel.h>
 
-
+// global variable
+List blockedPrg = {0};
 
 // bucnh of includes
 // include list so we can user static functions

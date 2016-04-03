@@ -1,7 +1,5 @@
 #include "blocker.h"
-#include <unistd.h>
 #include <string.h>
-#include <sys/types.h>
    
 int test_block_program(){
 	
@@ -19,12 +17,13 @@ int test_block_program(){
    char *arg2[] = {"/bin/mkdir", NULL};
    char *arg3[] = {"/bin/more", NULL};
    char *arg4[] = {"/bin/pwd", NULL};
-   char* files[]={file1,file2,file3,file4}
-   int lens[]={len1,len2,len3,len4}
-   char **args[]={arg1,arg2,arg3,arg4}
+   const char* files[]={file1,file2,file3,file4};
+   int lens[]={len1,len2,len3,len4};
+   char **args[]={arg1,arg2,arg3,arg4};
    
    // check all files are unblocked
-   for(int i=0,i<4,i++){
+   int i;
+   for(i=0;i<4;i++){
 	   if(0 != is_program_blocked(files[i],lens[i])){
 		   printf(" Err1 programs not blocked initially\n");
 		   res=0;

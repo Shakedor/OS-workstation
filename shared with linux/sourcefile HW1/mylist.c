@@ -13,7 +13,7 @@ typedef struct node_t* Node;
 
 struct list_t{
 	Node head;
-        Node current;
+        Node iter;
 };
 struct node_t{
 	char* name;
@@ -29,11 +29,11 @@ static Node listGetLast(List l);
 
 List listCreate(void){
 	//List l = malloc(sizeof(*l));
-	List l = kmalloc(*l), GFP_KERNEL);
+	List l = kmalloc(sizeof(*l), GFP_KERNEL);
 	if(!l)
 		return NULL;
 	l->head = NULL;
-l->current = NULL;
+l->iter = NULL;
 	return l;
 }
 ListResult listAddString(List l, const char *string){
@@ -134,17 +134,17 @@ ListResult isInList(List l, const char* string){
 char* listGetFirst(List l){
   if(!l)
     return NULL;
-  l->current = l->head;
-  return l->current ? (l->current)->name : NULL;
+  l->iter = l->head;
+  return l->iter ? (l->iter)->name : NULL;
 
 }
 
 char* listGetNext(List l){
   if(!l)
     return NULL;
-  if(l->current)
-    l->current = (l->current)->next;
-  return l->current ? (l->current)->name : NULL;
+  if(l->iter)
+    l->iter = (l->iter)->next;
+  return l->iter ? (l->iter)->name : NULL;
 
 }
 
