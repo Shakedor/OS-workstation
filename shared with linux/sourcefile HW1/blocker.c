@@ -83,7 +83,7 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	}
 	// check in processDS if process num pid exists
 	// if not return -ESRCH
-	task_struct *currStruct = find_task_by_pid(pid);
+	struct task_struct *currStruct = find_task_by_pid(pid);
 	
 	if(currStruct==NULL){
 		return(ESRCH);
@@ -91,10 +91,10 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	
 	// get the stack start and end of said process
 	unsigned long stack_start = (unsigned long)get_current();
-	unsigned long stack_end = (unsigned long)(get_current()|0xefff);
+	unsigned long stack_end = (unsigned long)(stack_start|((unsigned long)0xefff));
 	unsigned long log_position= (unsigned long)log;
 	// check if log is legally within the process' stack else return 'EFAULT'
-	if (!(stack_start<=log && log<=stack_end)){
+	if (!(stack_start<=log_position && log_position<=stack_end)){
 		return(EFAULT);
 	}
 	
@@ -102,18 +102,25 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	List forbiddenLog=currStruct->forbidenList;
 	unsigned int logSize=listGetSize(forbiddenLog);
 	unsigned int minSize=mymin(logSize,n);
-	unsigned int maxSize=mymax(logSize,n);
+	
+	//unused Variable
+	//
+	//unsigned int maxSize=mymax(logSize,n);
+	//
+	
 	// for min(n,len of log)
 	// put in char** param the log messages (Actually copy perhaps using the kernel copy functions)
 	// put NULL in remaining spots
 	
-	for( int i=0,ListElement curr=listGetFirst(forbiddenLog); i<minSize;i++,listGetNext(forbiddenLog)){
+	 int i;
+	 char* res=NUll;
+	for( i=0,ListElement curr=listGetFirst(forbiddenLog); i<minSize;i++,listGetNext(forbiddenLog)){
 		res=strcpy(log[i],curr);
 		if(res==NULL){
 			return(-1);
 		}
 	}
-	for(int i=minSize; i<n; i++){
+	for( i=minSize; i<n; i++){
 		log[i]=NULL;
 	}
 	
