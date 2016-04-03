@@ -790,8 +790,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	// (we need to check wether fork somehow copies the forbidden list)
 	/////////////////////////
 	
-	listDestroy(p->forbidenList);
-	p->forbidenList=listCreate(stringCopy,stringDestroy);
+	listClear(p->forbidenList);
 	
 fork_out:
 	return retval;
