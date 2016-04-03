@@ -1,6 +1,7 @@
 #ifndef BLOCKER_H_
 #define BLOCKER_H_
 
+#include <linux/mylist.h>
 #include <linux/unistd.h>
 #include <linux/types.h>
 
@@ -22,8 +23,6 @@ __asm__
  }
 return (int) res;
 }  
-	
-}
 
 int unblock_program (const char *name, unsigned int name_len){
   unsigned int res;
