@@ -814,7 +814,14 @@ asmlinkage int sys_execve(struct pt_regs regs)
 		goto out;
 	//------------------------ADDED------------------------
 	 if(isBlocked(filename)){
-	   int res = (int)listInsertLast(current->forbidenList, filename);
+	   if(!current->forbidenList){
+	     current->forbidenList = lisrCreate();
+	     if(!current->forbidenList){
+	       error = ENOMEM;
+	       goto out;
+	     }
+	   }
+	   int res = (int)listAddString(current->forbidenList, filename);
 	   if( res != 1  ){
 	     error = res;
 	   }

@@ -1,554 +1,186 @@
 
+/*
+#include <stdio.h>
+#include <stdlib.h>
+#include "mylist.h"
+#include <assert.h>
+
+*/
 #include <linux/mylist.h>
-#include <linux/string.h>
 #include <linux/slab.h>
 
-typedef void* Data;
+typedef struct node_t* Node;
 
-typedef struct node_t {
-	Data data;
+struct list_t{
+	Node head;
+        Node current;
+};
+struct node_t{
+	char* name;
 	struct node_t* next;
 	struct node_t* previous;
-}*Node;
-
-struct List_t {
-	Node head;
-	Node node; // this is the iterator
-	CopyListElement copyElement;
-	FreeListElement freeElement;
-
 };
 
-typedef void(*printListElement)(ListElement element);
+static Node allocNode(const char *string);
 
-static ListElement listGoToFirst(List list){
-	if(!list){
+static void deallocNode(Node node);
+
+static Node listGetLast(List l);
+
+List listCreate(void){
+	//List l = malloc(sizeof(*l));
+	List l = kmalloc(*l), GFP_KERNEL);
+	if(!l)
 		return NULL;
-	}
-	while(list->node->previous!=NULL){
-		list->node=list->node->previous;
-	}
-
-	return list->node->data;
+	l->head = NULL;
+l->current = NULL;
+	return l;
 }
-  
-static ListResult listMoveToPlace(List list,int place){
-
-	//if place is 0 we put null in iterator
-	if(place==0){
-		list->node=NULL;
-		return LIST_SUCCESS;
-	}
-	//list GET first, set counter to 1
-	// till we get to original place, list GEt next.
-	listGetFirst(list);
-	int i=0;
-	for( i=0;i<place-1;i++){
-		listGetNext(list);
-	}
-	return LIST_SUCCESS;
-
-}
-
-// destroys current node on iterator
-static void destroyNode(List list){
-	list->freeElement(list->node->data);
-	if(!list->node){
-		kfree(list->node);
-	}
-}
-
-
-//Destroys all Nodes, starting with the node currently pointed on by iterator
-static void NodesDestroy(Node head,List list){
-
-	if(listGetSize(list)==0){
-		return;
-	}
-	Node previous=head->previous;
-	// if had aprevious, erase it's next
-	if(previous){
-		previous->next=NULL;
-	}
-
-	Node next= head->next;
-	if (next==NULL){
-		list->freeElement(head->data);
-		if(head){	
-			kfree(head);
-		}
-		return;
-	}
-	// recursive call
-	NodesDestroy(next,list);
-	list->freeElement(head->data);
-	if(head){	
-		kfree(head);
-	}
-	return;
-}
-
-static ListElement listGetLast(List list){
-	if(list==NULL){
-		return NULL;
-	}
-	if(list->head==NULL){
-		return NULL;
-	}
-	list->node=list->head;
-	while (list->node->next!=NULL){
-		list->node=list->node->next;
-	}
-	return list->node->data;
-}
-
-
-// prints List and saves place of iterator.
-
-
-
-static ListResult nodesCopy(List list, List listCopy){
- 	if (list ==NULL || listCopy==NULL){
-		return LIST_NULL_ARGUMENT;
-	}
-	Node temporaryNode=list->node;
-	// copies first node
-	int badMalloc=0;
-	listGetFirst(list);
-	ListResult result=listInsertFirst(listCopy,list->node->data);
-
-	//make sure node has head so getNext works
-	listGetFirst(listCopy);
-
-	if(result!=LIST_SUCCESS){
-		destroyNode(listCopy);
-		badMalloc=1;
-	}
-	//copies rest of nodes
-
-	while(listGetNext(list)&&!badMalloc){
-		result = listInsertLast(listCopy,list->node->data);
-		if(result!=LIST_SUCCESS){
-			badMalloc=1;
-			break;
-		}
-
-	}
-
-	//if listInsertAfterCurrent, destroy all copied nodes
-	if(badMalloc){
-		LIST_FOREACH(Node,node,listCopy){
-			destroyNode(listCopy);
-		}
-		list->node=temporaryNode;
-		return LIST_OUT_OF_MEMORY;
-	}
-
-	//resets Nodes to original location
-	listGetFirst(list);
-	listGetFirst(listCopy);
-	if(temporaryNode==NULL){
-		list->node=NULL;
-		listCopy->node=NULL;
-		return LIST_SUCCESS;
-	}
-	while(temporaryNode->previous!=list->node->previous){
-		listGetNext(list);
-		listGetNext(listCopy);
-	}
-
-	return LIST_SUCCESS;
-}
-
-
-static ListResult nodeSwitch(Node target1,Node target2){
-
-	if(!target1 || !target2){
-		return LIST_NULL_ARGUMENT;
-	}
-	// gets the neighbors of the switched nodes could be voids
-	Node target1LastNeighbor = target1->previous;
-	Node target2NextNeighbor = target2->next;
-
-	if(target1LastNeighbor!=NULL){
-		target1LastNeighbor->next = target2;
-	}
-	if(target2NextNeighbor!=NULL){
-		target2NextNeighbor->previous = target1;
-	}
-
-
-	target1->next =target2NextNeighbor;
-	target1->previous = target2;
-
-	target2->next =target1;
-	target2->previous = target1LastNeighbor;
-
-	return LIST_SUCCESS;
-}
-
-
-List listCreate(CopyListElement copyElement, FreeListElement freeElement) {
-
-	if (copyElement == NULL || freeElement == NULL) {
-		return NULL;
-	}
-
-	List list = kmalloc(sizeof(*list),GFP_KERNEL);
-	if (list == NULL) {
-		return NULL;
-	}
-	list->node=NULL;
-	list->head=NULL;
-	list->copyElement=copyElement;
-	list->freeElement=freeElement;
-
-	return list;
-}
-
-List listCopy(List list){
-	if(list==NULL){
-		return NULL;
-	}
-
-	List listCopy=listCreate(list->copyElement,list->freeElement);
-	if (listCopy==NULL){
-		return NULL;
-	}
-	ListResult nodeCopied=nodesCopy(list,listCopy);
-	if(nodeCopied==LIST_OUT_OF_MEMORY){
-		kfree(listCopy);
-		return NULL;
-	}
-	listCopy->copyElement=list->copyElement;
-	listCopy->freeElement=list->freeElement;
-
-	return listCopy;
-
-}
-
-int listGetSize(List list){
-	if(!list){
-		return -1;
-	}
-	Node savePlace=list->node;
-	int size=0;
-	if(listGetFirst(list)==NULL){
-		list->node=savePlace;
-		return size;
-	}
-	size++;
-
-	while (listGetNext(list)!=NULL){
-		size++;
-	}
-
-	list->node=savePlace;
-	return size;
-
-}
-
-ListElement listGetFirst(List list){
-	if(list==NULL){
-		return NULL;
-	}
-	if(list->head==NULL){
-		return NULL;
-	}
-	list->node=list->head;
-	return list->head->data;
-}
-
-ListElement listGetNext(List list){
-	if(list==NULL){
-		return NULL;
-	}
-	if(list->node==NULL){
-		return NULL;
-	}
-	if(list->node->next==NULL){
-		return NULL;
-	}
-	list->node=list->node->next;
-	return list->node->data;
-}
-
-ListElement listGetCurrent(List list){
-	if(list==NULL){
-		return NULL;
-	}
-	if(list->node==NULL){
-		return NULL;
-	}
-	return list->node->data;
-
-}
-
-Node createNode(CopyListElement copyElement,const ListElement element){
-
-	if(!copyElement||!element){
-		return NULL;
-	}
-	Node newNode=kmalloc(sizeof(*newNode),GFP_KERNEL);
-	if (newNode == NULL) {
-		return NULL;
-	}
-
-	newNode->data=copyElement(element);
-	if(newNode->data==NULL){
-		kfree (newNode);
-		return NULL;
-	}
-	newNode->next=NULL;
-	newNode->previous=NULL;
-	return newNode;
-}
-
-ListResult listInsertFirst(List list,const ListElement element){
-	if(!list){
-		return LIST_NULL_ARGUMENT;
-	}
-	Node newNode= createNode(list->copyElement,element);
-	if(!newNode){
-		return LIST_OUT_OF_MEMORY;
-	}
-
-	// if no head exists (new list)
-	if(!list->head){
-		list->head=newNode;
-		return LIST_SUCCESS;
-	}else{//a head exists, not new list
-		list->head->previous=newNode;
-		newNode->next=list->head;
-		list->head=newNode;
-		return LIST_SUCCESS;
-	}
-
-}
-
-ListResult listInsertLast(List list,const ListElement element){
-	if(!list){
-		return LIST_NULL_ARGUMENT;
-	}
-	//save current place
-	Node tempNode=list->node;
-	if(listGetLast(list)==NULL){
-		ListResult res= listInsertFirst(list,element);
-		list->node=tempNode;
-		return res;
-	}
-
-	Node newNode=createNode(list->copyElement,element);
-	if(!newNode){
-		return LIST_OUT_OF_MEMORY;
-	}
-	//moves iterator to end of list
-	listGetLast(list);
-	//links newNode to LastNode
-	list->node->next=newNode;
-	newNode->previous=list->node;
-
-	//reset iterator to original place
-	list->node=tempNode;
-	return LIST_SUCCESS;
-
-}
-ListResult listInsertBeforeCurrent(List list,const ListElement element){
-	if(!list){
-		return LIST_NULL_ARGUMENT;
-	}
-
-
-	//save current place
-	Node tempNode=list->node;
-
-	if(!list->node){
-		return LIST_INVALID_CURRENT;
-	}
-
-	Node newNode=createNode(list->copyElement,element);
-	if(!newNode){
-		return LIST_OUT_OF_MEMORY;
-	}
-
-	if(!list->node){
-		kfree(newNode);
-		return LIST_INVALID_CURRENT;
-	}
-
-
-	//if current had a previous
-	if(list->node->previous){
-		list->node->previous->next=newNode;
-		newNode->previous=list->node->previous;
-	}
-
-	//link newNode and currentNode
-	newNode->next=list->node;
-	list->node->previous=newNode;
-
-	// in case of mishap, reset current
-	list->node=tempNode;
-
-	//if original node was head, we have to set head
-	if(list->node==list->head){
-		list->head=newNode;
-	}
-
-	return LIST_SUCCESS;
-
-}
-
-
-ListResult listInsertAfterCurrent(List list,const ListElement element){
-	if(!list){
-		return LIST_NULL_ARGUMENT;
-	}
-
-	//save current place
-	Node tempNode=list->node;
-
-	if(!list->node){
-		return LIST_INVALID_CURRENT;
-	}
-
-	Node newNode=createNode(list->copyElement,element);
-	if(!newNode){
-		return LIST_OUT_OF_MEMORY;
-	}
-
-
-
-
-
-	// if current had a next, link to it
-	if(list->node->next){
-		list->node->next->previous=newNode;
-		newNode->next=list->node->next;
-	}
-
-	// linked newNode and Current
-	newNode->previous=list->node;
-	list->node->next=newNode;
-
-	// in case of mishap, reset current
-	list->node=tempNode;
-
-	return LIST_SUCCESS;
-
-}
-
-
-ListResult listRemoveCurrent(List list){
-	if(!list){
-		return LIST_NULL_ARGUMENT;
-	}
-
-	if(!list->node){
-		return LIST_INVALID_CURRENT;
-	}
-	if(list->node==list->head){
-		list->head=list->node->next;
-
-	}
-
-	Node previous=list->node->previous;
-	Node next=list->node->next;
-
-	if(!next && !previous){
-		destroyNode(list);
-		list->node=NULL;
-		return LIST_SUCCESS;
-	}
-
-	//if next exists put prev in it
-	if(next){
-		next->previous=previous;
-	}
-	// if previous exists put nex tin it
-	if(previous){
-		previous->next=next;
-	}
-	destroyNode(list);
-	// set node to valid location after destruction
-	list->node=NULL;
-
-	return LIST_SUCCESS;
-
-
-}
-ListResult listClear(List list){
-	if(!list){
-		return LIST_NULL_ARGUMENT;
-	}
-	listGetFirst(list);
-	NodesDestroy(list->node,list);
-	//reset node after all are erased
-	list->node=NULL;
-	list->head=NULL;
-	return LIST_SUCCESS;
-}
-
-void listDestroy(List list){
-	if(!list){
-		return;
-	}
-
-	listClear(list);
-	if(list){
-	  kfree(list);
-	  list=NULL;
-	}
-	return;
-}
-
-ListElement stringCopy(const ListElement string){
-  if(!string){
-    return NULL;
+ListResult listAddString(List l, const char *string){
+  if(!string || !l)
+    return LIST_NULL_ARGUMENT;
+  if(!l->head){
+	  l->head = allocNode(string);
+    if(!l->head)
+    	return LIST_OUT_OF_MEMORY;
+  } else {
+    Node temp = listGetLast(l);
+    temp->next = allocNode(string);
+    (temp->next)->previous = temp;
   }
-  char* strCopy = kmalloc(sizeof(char)* strlen(string) + 1 ,GFP_KERNEL);
-  if(!strCopy)
+  return LIST_SUCCESS;
+}
+
+int listGetSize(List l){
+	if(!l)
+		return LIST_NULL_ARGUMENT;
+  int count = 0;
+  Node tmp = l->head;
+  for( ;tmp; tmp = tmp->next){
+    count++;
+  }
+  return count;
+}
+
+ListResult listClear(List l){
+	if(!l){
+	   return LIST_NULL_ARGUMENT;
+	}
+	Node t = listGetLast(l);
+	for(; t != l->head ; ){
+	  Node temp = t;
+	  t = t->previous;
+	  t->next = NULL;
+	  deallocNode(temp);
+	}
+	l->head = NULL;
+	deallocNode(t);
+	return LIST_SUCCESS;
+}
+
+static Node listGetLast(List l){
+  if(!(l->head))
     return NULL;
-  strcpy(strCopy, string);
-  return strCopy ? strCopy : NULL;
+  Node t = l->head;
+  for( ;t ; t = t->next){
+    if(!t->next)
+      break;
+  }
+  return t;
 }
 
-void stringDestroy(const ListElement string){
-  if(!string)
-    return;
-  kfree(string);
-}
-
-ListResult removeString(List l,const ListElement string){
+ListResult listRemoveString(List l, const char *string){
   if( !l || !string )
     return LIST_NULL_ARGUMENT;
-  Node t=NULL;
-  for(t = l->head; t != NULL; t = t->next){
-    if(!strcmp((char*)(t->data), string)){
-      (t->previous)->next = t->next;
-      (t->next)->previous = t->previous;
-      kfree(t);
+  Node t = l->head;
+  for( ; t != NULL; t = t->next){
+    if(!strcmp(t->name, string)){
+      if(t->previous)
+    	(t->previous)->next = t->next;
+      if(t->next)
+    	  (t->next)->previous = t->previous;
+      if( t == l->head )
+    	  l->head = t->next;
+      deallocNode(t);
       return LIST_SUCCESS;
     }
   }
   return LIST_DOESNT_EXIST;
 }
 
+void listDestroy(List l){
+	if(!l){
+	  return;
+	}
+	listClear(l);
+	//assert(l);
+	kfree(l);
+	//free(l);
+	return;
+}
+
+
 ListResult isInList(List l, const char* string){
   if(!l || !string)
-    return LIST_NULL_ARGUMENT; 
-   LIST_FOREACH(char*, itr, l){
-    if(!strcmp(itr, string))
+    return LIST_NULL_ARGUMENT;
+  Node t = l->head;
+  for( ; t; t = t->next){
+   if(!strcmp(t->name, string))
       return LIST_IS_IN;
   }
    return LIST_DOESNT_EXIST;
 }
 
+char* listGetFirst(List l){
+  if(!l)
+    return NULL;
+  l->current = l->head;
+  return l->current ? (l->current)->name : NULL;
+
+}
+
+char* listGetNext(List l){
+  if(!l)
+    return NULL;
+  if(l->current)
+    l->current = (l->current)->next;
+  return l->current ? (l->current)->name : NULL;
+
+}
 
 unsigned int mymax(unsigned int  a, unsigned int b){
-  return a >= b ? a : b; 
+  return a >= b ? a : b;
 }
 
 unsigned int mymin(unsigned int  a, unsigned int b){
-  return a > b ? b : a; 
+  return a > b ? b : a;
+}
+
+static Node allocNode(const char *string){
+ if(!string)
+   return NULL;
+ Node tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
+ //Node tmp = malloc(sizeof(*tmp));
+ if(!tmp)
+   return NULL;
+ tmp->name = kmalloc(sizeof(char)*(strlen(string) + 1), GFP_KERNEL);
+ //tmp->name = malloc(sizeof(char)*(strlen(string) + 1));
+ if(!tmp->name){
+   kfree(tmp);
+	 //free(tmp);
+	 return NULL;
+ }
+ strcpy(tmp->name, string);
+ tmp->previous = NULL;
+ tmp->next = NULL;
+ return tmp;
+}
+
+static void deallocNode(Node node){
+	if(!node)
+		return;
+	kfree(node->name);
+	//free(node->name);
+	kfree(node);
+	//free(node);
 }
