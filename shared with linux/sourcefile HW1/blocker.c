@@ -3,7 +3,6 @@
 #include <linux/sched.h>
 #include <linux/errno.h>
 #include <linux/slab.h>
-#include <linux/blocker.h>
 //#include <linux/uaccess.h>
 #include <linux/kernel.h>
 
@@ -15,6 +14,19 @@ List blockedPrg = {0};
 
 
 // implement utility functions for blockedList
+
+
+int isBlocked(const char *name){
+  if(!name)
+    return EINVAL;
+  //if list is empty
+  if(!blockedPrg)
+	  return 1;
+  //check if in list
+  if(isInList(blockedPrg, name) == LIST_IS_IN)
+    return 0;
+  return 1;
+}
 
 
 int sys_block_program(const char *name, unsigned int name_len){
@@ -132,17 +144,7 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 }
 
 
-int isBlocked(const char *name){
-  if(!name)
-    return EINVAL;
-  //if list is empty
-  if(!blockedPrg)
-	  return 1;
-  //check if in list
-  if(isInList(blockedPrg, name) == LIST_IS_IN)
-    return 0;
-  return 1;
-}
+
 
 
 
