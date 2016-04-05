@@ -29,6 +29,7 @@
 #include <asm/uaccess.h>
 #include <asm/mmu_context.h>
 
+#define MYDEBUG
 
 /* The idle threads do not count.. */
 int nr_threads;
@@ -791,10 +792,12 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	// (we need to check wether fork somehow copies the forbidden list)
 	/////////////////////////
 	
-	listClear(p->forbidenList);
-	#ifdef DEBUG
+	#ifdef MYDEBUG
 	printk("fork: cleaning the child's log list, fork.c l 794\n");
 	#endif
+	
+	p->forbidenList=NULL;
+
 fork_out:
 	return retval;
 

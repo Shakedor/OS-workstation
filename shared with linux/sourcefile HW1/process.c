@@ -52,6 +52,9 @@
 
 #include <linux/irq.h>
 
+
+//#define MYDEBUG
+
 asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
 
 int hlt_counter;
@@ -803,6 +806,9 @@ asmlinkage int sys_vfork(struct pt_regs regs)
 asmlinkage int sys_execve(struct pt_regs regs)
 {
 	
+	#ifdef MYDEBUG
+	printk("entering execve\n");
+	#endif
 	/////////////////////
 	// fail execv and log forbidden entry if program is blocked
 	/////////////////////
@@ -815,25 +821,25 @@ asmlinkage int sys_execve(struct pt_regs regs)
 		goto out;
 	//------------------------ADDED------------------------
 	 if(isBlocked(filename)){
-	   #ifdef DEBUG
+	   #ifdef MYDEBUG
 	   printk("program %s is blocked - process.c l 817\n", filename);
 	   #endif
 	   if(!current->forbidenList){
-	     current->forbidenList = lisrCreate();
+	     current->forbidenList = listCreate();
 	     if(!current->forbidenList){
 	       error = ENOMEM;
-	       #ifdef DEBUG
+	       #ifdef MYDEBUG
 	        printk("program %s is blocked and kmalloc failed- process.c l 822\n", filename);
 		#endif
 		goto out;
 	     }
 	   }
 	   int res = (int)listAddString(current->forbidenList, filename);
-	   #ifdef DEBUG
+	   #ifdef MYDEBUG
 	   printk("program %s is blocked: doing log to process %d - process.c l 827\n", filename, current->pid);
 	   #endif
 	   if( res != 1  ){
-	      #ifdef DEBUG
+	      #ifdef MYDEBUG
 	      printk("program %s is blocked and kmalloc failed- process.c l 829\n", filename);
 	      #endif
 	      error = res;

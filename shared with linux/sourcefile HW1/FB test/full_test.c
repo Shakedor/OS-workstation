@@ -190,8 +190,10 @@ bool log_test() {
     char *argvd[] = {"/root/hw1_tests/prog4", 0};
 
 
+	printf("tryna execv \n");
     // should all fail
     execv(name1, argva);
+	printf("my fail\n");
     execv(name2, argvb);
     //this fails just because the programs don't exist
     execv(name3, argvc);

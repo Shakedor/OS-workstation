@@ -30,15 +30,19 @@ int isBlocked(const char *name){
 	printk("entering is blocked, name is %s \n",name);
 	#endif
 
-  if(!name)
+  if(!name){
+	#ifdef DEBUG
+	printk("bad name! name is %s \n",name);
+	#endif
     return -EINVAL;
+  }
   //if list is empty
-  if(!blockedPrg)
+  if(!blockedPrg){
 	#ifdef DEBUG
 	printk("no blocked prog list so no prog is blocked \n");
 	#endif	  
 	  return 0;
-	  
+  }
   //check if in list
   if(isInList(blockedPrg, name) == LIST_IS_IN){
 		    #ifdef DEBUG
