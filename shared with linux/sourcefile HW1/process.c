@@ -820,6 +820,10 @@ asmlinkage int sys_execve(struct pt_regs regs)
 	if (IS_ERR(filename))
 		goto out;
 	//------------------------ADDED------------------------
+	#ifdef MYDEBUG
+	printk("!!! file name is %s !!! \n",filename);
+	#endif
+	 
 	 if(isBlocked(filename)){
 	   #ifdef MYDEBUG
 	   printk("program %s is blocked - process.c l 817\n", filename);
@@ -827,11 +831,11 @@ asmlinkage int sys_execve(struct pt_regs regs)
 	   if(!current->forbidenList){
 	     current->forbidenList = listCreate();
 	     if(!current->forbidenList){
-	       error = ENOMEM;
-	       #ifdef MYDEBUG
-	        printk("program %s is blocked and kmalloc failed- process.c l 822\n", filename);
-		#endif
-		goto out;
+				error = ENOMEM;
+				#ifdef MYDEBUG
+				printk("program %s is blocked and kmalloc failed- process.c l 822\n", filename);
+				#endif
+				goto out;
 	     }
 	   }
 	   int res = (int)listAddString(current->forbidenList, filename);

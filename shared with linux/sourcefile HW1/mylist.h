@@ -7,7 +7,6 @@
 
 #ifndef MYLIST_H_
 #define MYLIST_H_
-
 #include <linux/string.h>
 
 /** Type used for returning error codes from list functions */
@@ -17,7 +16,8 @@ typedef enum ListResult_t {
   LIST_OUT_OF_MEMORY = 12,
   LIST_INVALID_INPUT,
   LIST_DOESNT_EXIST,
-  LIST_IS_IN
+  LIST_IS_IN,
+  LIST_COPY_FAIL
 } ListResult;
 
 typedef struct list_t *List;
@@ -25,6 +25,7 @@ typedef struct list_t *List;
 List listCreate(void);
 
 ListResult listAddString(List l, const char *string);
+
 
 int listGetSize(List l);
 

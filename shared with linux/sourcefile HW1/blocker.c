@@ -3,11 +3,10 @@
 #include <linux/sched.h>
 #include <linux/errno.h>
 #include <linux/slab.h>
-//#include <linux/uaccess.h>
 #include <linux/kernel.h>
-
-// global variable
-List blockedPrg = {0};
+#include <linux/kerBlocker.h>
+#include <asm/uaccess.h>
+#include <linux/mylist.h>
 
 // bucnh of includes
 // include list so we can user static functions
@@ -15,54 +14,80 @@ List blockedPrg = {0};
 
 // implement utility functions for blockedList
 
-#define DEBUG
+#define MYBDBG
 
 int sys_getfive(void){
 	return 5;
 }
 
 
-     #ifdef DEBUG
+     #ifdef MYBDBG
      #endif
 
 int isBlocked(const char *name){
-	#ifdef DEBUG
+	#ifdef MYBDBG
 	printk("entering is blocked, name is %s \n",name);
 	#endif
 
   if(!name){
-	#ifdef DEBUG
+	#ifdef MYBDBG
 	printk("bad name! name is %s \n",name);
 	#endif
     return -EINVAL;
   }
   //if list is empty
   if(!blockedPrg){
-	#ifdef DEBUG
+	#ifdef MYBDBG
 	printk("no blocked prog list so no prog is blocked \n");
 	#endif	  
 	  return 0;
   }
   //check if in list
   if(isInList(blockedPrg, name) == LIST_IS_IN){
-		    #ifdef DEBUG
+		    #ifdef MYBDBG
 			printk("%s is in list return 1 from isBlocked\n",name);
 			#endif
 		return 1;
 
   }
-	#ifdef DEBUG
+	#ifdef MYBDBG
 	printk("%s is NOT in list return 0 from isBlocked\n",name);
 	#endif
   
   return 0;
 }
 
+ListResult listAddFromUser(List l, const char *userStr, int str_len){
+	
+  #ifdef MYBDBG_list
+  printk(" entering listAddFromUser  add string (failed unless a success message is printed) l57\n");
+  #endif	
+  if(!userStr || !l)
+    return LIST_NULL_ARGUMENT;
+  char* temp = kmalloc(sizeof(char)*(str_len + 1 ),GFP_KERNEL);
+  if(!temp)
+    return LIST_OUT_OF_MEMORY;
+  if(copy_from_user(temp, userStr, str_len + 1)){
+    kfree(temp);
+    return LIST_COPY_FAIL;
+   }
+  if( listAddString(l, temp) != LIST_SUCCESS ){
+    kfree(temp);
+    return LIST_OUT_OF_MEMORY;
+  }
+  kfree(temp);
+      
+  #ifdef MYBDBG_list
+  printk("listAddFromUser add successful l74\n");
+  #endif
+		
+  return LIST_SUCCESS;
+}
 
 int sys_block_program(const char *name, unsigned int name_len){
    // check name for NULL or other param errors
   if(!name || name_len <= 0 ){
-    #ifdef DEBUG
+    #ifdef MYBDBG
     printk("sys_block_program name is NULL or name len <= 0 line 24\n");
     #endif
     return -EINVAL;
@@ -76,7 +101,7 @@ int sys_block_program(const char *name, unsigned int name_len){
 	
 	// check if in list, the function checks if the list is empty
   if(isInList(blockedPrg, name) == LIST_IS_IN){
-    #ifdef DEBUG
+    #ifdef MYBDBG
     printk("sys_block_program program %s  is already blocked l 38\n", name);
     #endif
     return 0;
@@ -84,14 +109,23 @@ int sys_block_program(const char *name, unsigned int name_len){
 	//if already in list return appropriate return value
         //if not in list
 	// add to blockedList
-  if(listAddString(blockedPrg, name) == LIST_OUT_OF_MEMORY){
-    #ifdef DEBUG
+	ListResult Res=listAddFromUser(blockedPrg, name,name_len);
+	
+  if(Res == LIST_OUT_OF_MEMORY){
+    #ifdef MYBDBG
     printk("sys_block_program adding program %s to forbidden list failed, return -1  line 47\n", name);
     #endif
-    return -1;
+    return -ENOMEM;
+  }
+  
+  if(Res==LIST_COPY_FAIL){
+	#ifdef MYBDBG
+    printk("sys_block_program adding program %s to forbidden list copied from forbidden area, return -1  line 47\n", name);
+    #endif
+    return -EFAULT;
   }
 
-   #ifdef DEBUG
+   #ifdef MYBDBG
     printk("sys_block_program adding program %s to forbidden list succedeed, return 1  line 53\n", name);
     #endif
 	//return blocked ret value
@@ -104,7 +138,7 @@ int sys_unblock_program(const char *name, unsigned int name_len){
 	//check null terminated string
 	//if error return -EINVAL
   if(!name || name_len <= 0 ){
-	  #ifdef DEBUG
+	  #ifdef MYBDBG
 	  printk("sys_unblock_program name is NULL or name len <= 0 line 66\n");
           #endif
 	  return -EINVAL;
@@ -112,19 +146,19 @@ int sys_unblock_program(const char *name, unsigned int name_len){
 	// check if in list
 	// if so remove and return prog was unblocked, the function checks if the list is empty
   if(!blockedPrg){
-     #ifdef DEBUG
+     #ifdef MYBDBG
     printk("sys_unblock_program the forbidden list is empty for program %s line 74\n", name);
       #endif
     return 1;
   }
   if(listRemoveString(blockedPrg, name) == LIST_SUCCESS){
-     #ifdef DEBUG
+     #ifdef MYBDBG
      printk("sys_unblock_program removing of program %s from the forbidden list succedeed line 80\n",name);
      #endif
     return 0;
   }
 
-   #ifdef DEBUG
+   #ifdef MYBDBG
    printk("sys_unblock_program program %s wasn't blocked  line 86\n",name);
    #endif
    return 1; //the programm wasn't blocked
@@ -137,7 +171,7 @@ int sys_is_program_blocked(const char *name, unsigned int name_len){
 	//check null terminated string
 	//if error return -EINVAL
   if(!name || name_len <= 0 ){
-     #ifdef DEBUG
+     #ifdef MYBDBG
      printk("sys_is_program_blocked name is NULL or name len <= 0 line 99\n");
      #endif
     return -EINVAL;
@@ -145,18 +179,18 @@ int sys_is_program_blocked(const char *name, unsigned int name_len){
 	//check if in list
 	//if yes return 1 (blocked)
 	//else return 0(not blocked)
-	#ifdef DEBUG
+	#ifdef MYBDBG
      printk("sys_is_program_blocked name is legit, checking if its blocked\n");
      #endif
 	return isBlocked(name);
 }
 
 int sys_get_blocked_count(void){
-	 //#ifdef DEBUG
+	 //#ifdef MYBDBG
      printk("entering sys get blocked_count\n");
      //#endif
   if(!blockedPrg){
-     #ifdef DEBUG
+     #ifdef MYBDBG
      printk("sys_get_blocked_count the forbidden list is empty! 112\n");
      #endif
     return 0;
@@ -168,7 +202,7 @@ int sys_get_blocked_count(void){
 int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 // if n<=0 ret -EINVAL
 	if(n<=0){
-	  #ifdef DEBUG
+	  #ifdef MYBDBG
 	  printk("sys_get_forbidden_tries n <= 0 line 124\n");
           #endif
 		return -EINVAL;
@@ -178,23 +212,11 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	struct task_struct *currStruct = find_task_by_pid(pid);
 	
 	if(currStruct==NULL){
-	  #ifdef DEBUG
+	  #ifdef MYBDBG
 	  printk("sys_get_forbidden_tries there is no process with pid line 134 %d\n", pid);
           #endif
 	  return(-ESRCH);
 	}	
-	
-	// get the stack start and end of said process
-	unsigned long stack_start = (unsigned long)get_current();
-	unsigned long stack_end = (unsigned long)(stack_start|((unsigned long)0xefff));
-	unsigned long log_position= (unsigned long)log;
-	// check if log is legally within the process' stack else return 'EFAULT'
-	if (!(stack_start<=log_position && log_position<=stack_end)){
-	  #ifdef DEBUG
-	  printk("sys_get_forbidden_tries log is not in stack of process with pid line 146 %d\n", pid);
-          #endif
-		return(-EFAULT);
-	}
 	
 	// get the process' forbidden access log
 	List forbiddenLog=currStruct->forbidenList;
@@ -212,17 +234,20 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	
 	 int i;
 	 char* curr=NULL;
-	 char* res=NULL;
-	  #ifdef DEBUG
+	 int res=0;
+	  #ifdef MYBDBG
 	  printk("sys_get_forbidden_tries about to start copy the log of process pid line 169 %d\n", pid);
           #endif
-	for( i=0, curr=listGetFirst(forbiddenLog); i<minSize;i++,listGetNext(forbiddenLog)){
-		res=strcpy(log[i],curr);
-		if(res==NULL){
-			return(-1);
+	for( i=0, curr=listGetFirst(forbiddenLog); i<minSize;i++,curr=listGetNext(forbiddenLog)){
+		#ifdef MYBDBG
+		printk(" curr is %s \n", curr);
+        #endif
+		res==copy_to_user(log[i],curr,strlen(curr)+1);
+		if(res!=0){
+			return(-EFAULT);
 		}
 	}
-	 #ifdef DEBUG
+	 #ifdef MYBDBG
 	  printk("sys_get_forbidden_tries finishing copy the log of process pid line 178 %d\n", pid);
           #endif
 	for( i=minSize; i<n; i++){

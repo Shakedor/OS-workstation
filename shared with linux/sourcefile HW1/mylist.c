@@ -77,6 +77,8 @@ ListResult listAddString(List l, const char *string){
   return LIST_SUCCESS;
 }
 
+
+
 int listGetSize(List l){
 	
 	#ifdef DEBUG_list
@@ -217,7 +219,7 @@ ListResult isInList(List l, const char* string){
 	printk("string found! exiting is in list l217 \n");
 	#endif
 	
-      return LIST_SUCCESS;
+      return LIST_IS_IN;
   }
   
   

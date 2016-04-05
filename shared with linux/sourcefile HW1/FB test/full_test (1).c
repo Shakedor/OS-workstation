@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <errno.h>
 
 bool block_program_test() {
   	const char* name1 = "/root/hw1_tests/prog1";
@@ -190,10 +189,8 @@ bool log_test() {
     char *argvd[] = {"/root/hw1_tests/prog4", 0};
 
 
-	printf("tryna execv \n");
     // should all fail
     execv(name1, argva);
-	printf("my fail\n");
     execv(name2, argvb);
     //this fails just because the programs don't exist
     execv(name3, argvc);
@@ -231,11 +228,9 @@ bool log_test() {
   	for(int i = 0; i < log_len; i++) {
   		switch(i) {
   			case 0 :
-				printf(" case 0 string is %s \n",log[i]);
   				ASSERT_TEST(strcmp(log[i], name1) == 0);
   				break;
   			case 1 :
-				printf(" case 1 string is %s \n",log[i]);
   				ASSERT_TEST(strcmp(log[i], name2) == 0);
   				break;
   			case 2 :
@@ -282,7 +277,6 @@ bool log_test() {
   		_exit(EXIT_SUCCESS);
   	}
   	wait(&status);
-	printf("wait over !! \n");
     assert(WEXITSTATUS(status) == EXIT_SUCCESS); 
 	unblock_program(name1, len);
 	unblock_program(name2, len);
