@@ -21,7 +21,6 @@
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
 
-#define DEBUG
 
 extern void sem_exit (void);
 extern struct task_struct *child_reaper;

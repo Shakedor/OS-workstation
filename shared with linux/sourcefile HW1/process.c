@@ -11,7 +11,6 @@
  * This file handles the architecture-dependent parts of process handling..
  */
 
-#define DEBUG
 
 #define __KERNEL_SYSCALLS__
 #include <stdarg.h>

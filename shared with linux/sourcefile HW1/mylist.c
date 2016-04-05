@@ -12,7 +12,7 @@
 typedef struct node_t* Node;
 
 // flag for conditional compilation
-#define DEBUG_list
+//#define DEBUG_list
 
 
 
@@ -217,7 +217,7 @@ ListResult isInList(List l, const char* string){
 	printk("string found! exiting is in list l217 \n");
 	#endif
 	
-      return LIST_IS_IN;
+      return LIST_SUCCESS;
   }
   
   

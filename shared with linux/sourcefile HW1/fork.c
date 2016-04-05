@@ -29,7 +29,6 @@
 #include <asm/uaccess.h>
 #include <asm/mmu_context.h>
 
-#define DEBUG
 
 /* The idle threads do not count.. */
 int nr_threads;

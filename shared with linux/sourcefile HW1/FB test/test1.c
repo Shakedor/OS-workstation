@@ -3,6 +3,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 /*
  * Place two simple executable files in the following paths,

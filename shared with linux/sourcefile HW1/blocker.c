@@ -3,7 +3,6 @@
 #include <linux/sched.h>
 #include <linux/errno.h>
 #include <linux/slab.h>
-#include <linux/blocker.h>
 //#include <linux/uaccess.h>
 #include <linux/kernel.h>
 
@@ -18,16 +17,41 @@ List blockedPrg = {0};
 
 #define DEBUG
 
+int sys_getfive(void){
+	return 5;
+}
+
+
+     #ifdef DEBUG
+     #endif
+
 int isBlocked(const char *name){
+	#ifdef DEBUG
+	printk("entering is blocked, name is %s \n",name);
+	#endif
+
   if(!name)
-    return EINVAL;
+    return -EINVAL;
   //if list is empty
   if(!blockedPrg)
-	  return 1;
+	#ifdef DEBUG
+	printk("no blocked prog list so no prog is blocked \n");
+	#endif	  
+	  return 0;
+	  
   //check if in list
-  if(isInList(blockedPrg, name) == LIST_IS_IN)
-    return 0;
-  return 1;
+  if(isInList(blockedPrg, name) == LIST_IS_IN){
+		    #ifdef DEBUG
+			printk("%s is in list return 1 from isBlocked\n",name);
+			#endif
+		return 1;
+
+  }
+	#ifdef DEBUG
+	printk("%s is NOT in list return 0 from isBlocked\n",name);
+	#endif
+  
+  return 0;
 }
 
 
@@ -37,7 +61,7 @@ int sys_block_program(const char *name, unsigned int name_len){
     #ifdef DEBUG
     printk("sys_block_program name is NULL or name len <= 0 line 24\n");
     #endif
-    return EINVAL;
+    return -EINVAL;
   }
   if(!blockedPrg){
     blockedPrg = listCreate();
@@ -79,7 +103,7 @@ int sys_unblock_program(const char *name, unsigned int name_len){
 	  #ifdef DEBUG
 	  printk("sys_unblock_program name is NULL or name len <= 0 line 66\n");
           #endif
-	  return EINVAL;
+	  return -EINVAL;
   }
 	// check if in list
 	// if so remove and return prog was unblocked, the function checks if the list is empty
@@ -91,13 +115,13 @@ int sys_unblock_program(const char *name, unsigned int name_len){
   }
   if(listRemoveString(blockedPrg, name) == LIST_SUCCESS){
      #ifdef DEBUG
-     printk("sys_unblock_program removing of program %s from the forbidden list succedeed line 80\n");
+     printk("sys_unblock_program removing of program %s from the forbidden list succedeed line 80\n",name);
      #endif
     return 0;
   }
 
    #ifdef DEBUG
-   printk("sys_unblock_program program %s wasn't blocked  line 86\n");
+   printk("sys_unblock_program program %s wasn't blocked  line 86\n",name);
    #endif
    return 1; //the programm wasn't blocked
 	    // I HAVE NO IDEA WHAT ARE THE RETURN VALUES
@@ -112,15 +136,21 @@ int sys_is_program_blocked(const char *name, unsigned int name_len){
      #ifdef DEBUG
      printk("sys_is_program_blocked name is NULL or name len <= 0 line 99\n");
      #endif
-    return EINVAL;
+    return -EINVAL;
   }
 	//check if in list
-	//if yes return 0 (blocked)
-	//else return 1(not blocked)
+	//if yes return 1 (blocked)
+	//else return 0(not blocked)
+	#ifdef DEBUG
+     printk("sys_is_program_blocked name is legit, checking if its blocked\n");
+     #endif
 	return isBlocked(name);
 }
 
 int sys_get_blocked_count(void){
+	 //#ifdef DEBUG
+     printk("entering sys get blocked_count\n");
+     //#endif
   if(!blockedPrg){
      #ifdef DEBUG
      printk("sys_get_blocked_count the forbidden list is empty! 112\n");
@@ -137,7 +167,7 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	  #ifdef DEBUG
 	  printk("sys_get_forbidden_tries n <= 0 line 124\n");
           #endif
-		return EINVAL;
+		return -EINVAL;
 	}
 	// check in processDS if process num pid exists
 	// if not return -ESRCH
@@ -147,7 +177,7 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	  #ifdef DEBUG
 	  printk("sys_get_forbidden_tries there is no process with pid line 134 %d\n", pid);
           #endif
-	  return(ESRCH);
+	  return(-ESRCH);
 	}	
 	
 	// get the stack start and end of said process
@@ -159,7 +189,7 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	  #ifdef DEBUG
 	  printk("sys_get_forbidden_tries log is not in stack of process with pid line 146 %d\n", pid);
           #endif
-		return(EFAULT);
+		return(-EFAULT);
 	}
 	
 	// get the process' forbidden access log

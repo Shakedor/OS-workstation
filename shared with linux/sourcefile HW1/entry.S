@@ -649,11 +649,13 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_ni_syscall)	/* 240 reserved for futex */
 	.long SYMBOL_NAME(sys_sched_setaffinity)
 	.long SYMBOL_NAME(sys_sched_getaffinity)
+	//-----------------------
 	.long SYMBOL_NAME(sys_block_program)
 	.long SYMBOL_NAME(sys_unblock_program)
 	.long SYMBOL_NAME(sys_is_program_blocked)
 	.long SYMBOL_NAME(sys_get_blocked_count)
 	.long SYMBOL_NAME(sys_get_forbidden_tries)
+	.long SYMBOL_NAME(sys_getfive)
 	
 	
 //////////////////////////////// (5 lines up)
