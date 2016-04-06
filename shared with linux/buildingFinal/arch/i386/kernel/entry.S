@@ -655,6 +655,7 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_is_program_blocked)
 	.long SYMBOL_NAME(sys_get_blocked_count)
 	.long SYMBOL_NAME(sys_get_forbidden_tries)
+	.long SYMBOL_NAME(sys_getfive)
 	
 	
 //////////////////////////////// (5 lines up)

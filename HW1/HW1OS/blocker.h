@@ -25,6 +25,21 @@ __asm__
 return (int) res;
 }  
 
+int getfive(void) {
+unsigned int res;
+__asm__
+(
+ "int $0x80;"
+ : "=a" (res)
+ : "0" (248) 
+);
+ if (res>= (unsigned long)(-125))
+ {
+ errno = -res;
+ res = -1;
+ }
+return (int) res;
+}  
 
 int unblock_program (const char *name, unsigned int name_len){
   unsigned int res;

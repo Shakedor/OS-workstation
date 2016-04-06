@@ -290,7 +290,7 @@ bool log_test() {
 	unblock_program(name2, len);
   	
     return true;
-}
+}./
 
 int main() {
 	RUN_TEST(unblock_test);

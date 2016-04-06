@@ -15,6 +15,12 @@
 // implement utility functions for blockedList
 
 
+int sys_getfive(void){
+	return 5;
+}
+
+
+
 
 int isBlocked(const char *name){
 	#ifdef MYBDBG
