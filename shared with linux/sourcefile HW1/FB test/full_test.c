@@ -190,10 +190,8 @@ bool log_test() {
     char *argvd[] = {"/root/hw1_tests/prog4", 0};
 
 
-	printf("tryna execv \n");
     // should all fail
     execv(name1, argva);
-	printf("my fail\n");
     execv(name2, argvb);
     //this fails just because the programs don't exist
     execv(name3, argvc);
@@ -205,6 +203,7 @@ bool log_test() {
     execv(name1, argvb);
     //final result: 1, 2, 1, 2, 2, 1
 
+	
   	int log_len = 6;
   	char log[log_len][256];
    	
@@ -231,11 +230,9 @@ bool log_test() {
   	for(int i = 0; i < log_len; i++) {
   		switch(i) {
   			case 0 :
-				printf(" case 0 string is %s \n",log[i]);
   				ASSERT_TEST(strcmp(log[i], name1) == 0);
   				break;
   			case 1 :
-				printf(" case 1 string is %s \n",log[i]);
   				ASSERT_TEST(strcmp(log[i], name2) == 0);
   				break;
   			case 2 :
@@ -254,7 +251,7 @@ bool log_test() {
   				ASSERT_TEST(strcmp(log[i], test_str) == 0);
   		}
   	}
-
+	
   	init_log(log, log_len);
  	ASSERT_TEST(get_forbidden_tries(getpid(), log, 3) == 3);
   	for(int i = 0; i < log_len; i++) {
@@ -272,15 +269,20 @@ bool log_test() {
   				ASSERT_TEST(strcmp(log[i], test_str) == 0);
   		}
   	}
+
+
   	int status;
   	if(fork() == 0) {
   		init_log(log, log_len);
+
   		ASSERT_TEST(get_forbidden_tries(getpid(), log, log_len) == 0);
+
   		for(int i = 0; i < log_len; i++) {
 			ASSERT_TEST(strcmp(log[i], test_str) == 0);
   		}
   		_exit(EXIT_SUCCESS);
   	}
+
   	wait(&status);
 	printf("wait over !! \n");
     assert(WEXITSTATUS(status) == EXIT_SUCCESS); 
@@ -296,6 +298,7 @@ int main() {
 	RUN_TEST(is_program_blocked_test);
 	RUN_TEST(log_test);
 	RUN_TEST(block_program_test);
+	printf("whoo hoo \n");
 	return 0;
 }
 

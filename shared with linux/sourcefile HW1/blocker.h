@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 
-#define DEBUG
+//#define DEBUG
 
 int block_program(const char *name, unsigned int name_len) {
 unsigned int res;
@@ -60,7 +60,6 @@ return (int) res;
 
 int is_program_blocked(const char *name, unsigned int name_len){
 unsigned int res;
- printf(" in is program blocked\n");
 
 __asm__
 (
@@ -73,7 +72,6 @@ __asm__
  errno = -res;
  res = -1;
  }
- printf(" in is program blocked, res is %u\n",res);
 return (int) res;
 }
 

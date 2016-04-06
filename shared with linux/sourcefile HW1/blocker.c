@@ -14,15 +14,13 @@
 
 // implement utility functions for blockedList
 
-#define MYBDBG
 
 int sys_getfive(void){
 	return 5;
 }
 
 
-     #ifdef MYBDBG
-     #endif
+
 
 int isBlocked(const char *name){
 	#ifdef MYBDBG
@@ -104,7 +102,7 @@ int sys_block_program(const char *name, unsigned int name_len){
     #ifdef MYBDBG
     printk("sys_block_program program %s  is already blocked l 38\n", name);
     #endif
-    return 0;
+    return 1;
   }
 	//if already in list return appropriate return value
         //if not in list
@@ -122,14 +120,14 @@ int sys_block_program(const char *name, unsigned int name_len){
 	#ifdef MYBDBG
     printk("sys_block_program adding program %s to forbidden list copied from forbidden area, return -1  line 47\n", name);
     #endif
-    return -EFAULT;
+    return -EFAULT ;
   }
 
    #ifdef MYBDBG
     printk("sys_block_program adding program %s to forbidden list succedeed, return 1  line 53\n", name);
     #endif
 	//return blocked ret value
-  return 1;
+  return 0;
 }
 
 
@@ -186,9 +184,9 @@ int sys_is_program_blocked(const char *name, unsigned int name_len){
 }
 
 int sys_get_blocked_count(void){
-	 //#ifdef MYBDBG
+	 #ifdef MYBDBG
      printk("entering sys get blocked_count\n");
-     //#endif
+     #endif
   if(!blockedPrg){
      #ifdef MYBDBG
      printk("sys_get_blocked_count the forbidden list is empty! 112\n");
@@ -218,10 +216,29 @@ int sys_get_forbidden_tries(int pid, char log[][256], unsigned int n){
 	  return(-ESRCH);
 	}	
 	
+	int emptyList=0;
 	// get the process' forbidden access log
+	if(currStruct->forbidenList==NULL){
+		emptyList=1;
+	}
+	
 	List forbiddenLog=currStruct->forbidenList;
-	unsigned int logSize=listGetSize(forbiddenLog);
+	
+	unsigned int logSize;
+	if(emptyList==1){
+		logSize=0;
+	}else{
+		logSize=listGetSize(forbiddenLog);
+	}	
 	unsigned int minSize=mymin(logSize,n);
+	
+	if(access_ok(VERIFY_WRITE,log,minSize*256)==0){
+		return -EFAULT;
+	}
+	
+	if(emptyList){
+		return 0;
+	}
 	
 	//unused Variable
 	//

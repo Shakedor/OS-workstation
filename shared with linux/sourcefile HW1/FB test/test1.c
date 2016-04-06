@@ -34,16 +34,24 @@ void test1() {
 
     char *argva[] = {A_NAME, 0};
     char *argvb[] = {B_NAME, 0};
-
+	
+	char log[20][256];
     // should all fail
     execv(PROG_A, argva);
+	assert(get_forbidden_tries(getpid(), log, 20)==1);
     execv(PROG_B, argvb);
+	assert(get_forbidden_tries(getpid(), log, 20)==2);
     execv(PROG_A, argva);
+	assert(get_forbidden_tries(getpid(), log, 20)==3);
     execv(PROG_A, argva);
+	assert(get_forbidden_tries(getpid(), log, 20)==4);
     execv(PROG_B, argvb);
+	assert(get_forbidden_tries(getpid(), log, 20)==5);
     execv(PROG_B, argvb);
+	assert(get_forbidden_tries(getpid(), log, 20)==6);
 
-    char log[20][256];
+
+
     assert(get_forbidden_tries(getpid(), log, 0) == -1);
     assert(errno == EINVAL);
     assert(get_forbidden_tries(-5, log, 20) == -1);
@@ -86,7 +94,7 @@ void test2() {
         exit(1); // shouldn't happen
     }
     wait(&status);
-    assert(WEXITSTATUS(status) == 0); // assuming a.out exits with 0
+    assert(WEXITSTATUS(status) == 0); // assuming a.out exits with 0 
 
     assert(block_program(PROG_A, strlen(PROG_A)) == 0);
     assert(block_program(PROG_B, strlen(PROG_B)) == 0);
