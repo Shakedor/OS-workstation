@@ -1,0 +1,51 @@
+1 set Short-process definition (sched_setscheduler() )
+SHOUDL CONTAIN REQUESTED TIME AND NUMBER OF COOL OFF CYCLES
+should return -1 if number of trials is lillegal
+should return "Operatio not permitted" if trying to convert a short to another process
+
+2 set short process overdue definition
+
+3 block changes from short to non short
+
+4 set ranking between new process types
+
+5 integrate NICE values into short process prio
+
+6 add 2 runqueues for short and overdue short
+
+7 see that shortprocesses can fork like normal processes (note that the son goes to head of queue and father to end of queue)
+also note that remaining time and number of cycles must be divided.
+
+8 make a fifo line without timeslices for the short overdue
+
+9 make a timer that tells us when to move short to overdue and vise versa 
+ACTUALLY: set the clock to check wether a short period needs moving.
+
+10 change the sturct sched_param to contains numer_of_time_requests and num_colloffs
+notice that get param must return initial collOffs
+
+
+11 Calling sched_setscheduler() on a SHORT process should always fail (EPREM
+error code)
+
+12 allow resetting the requested time in a way when the new value is reset 
+only on the next return to the short runqueue.
+make sure the number of cool off cycles cannot be changed by anyone
+and the requested time can only be changed by the procecess' user or root
+
+13 add 3 system calls
+
+14 make sure short and overdue short can sleep and wake up properly (1 of the places is try_to_wake_up)
+
+
+
+
+
+
+
+
+
+
+to find: conversion between milisecs and ticks
+
+Note this thread https://piazza.com/class/iliabemchdwbj?cid=131
