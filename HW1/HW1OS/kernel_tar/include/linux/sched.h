@@ -27,6 +27,7 @@ extern unsigned long event;
 #include <linux/securebits.h>
 #include <linux/fs_struct.h>
 #include <linux/low-latency.h>
+#include <linux/mylist.h>
 
 struct exec_domain;
 
@@ -112,11 +113,6 @@ extern unsigned long nr_uninterruptible(void);
 #define set_current_state(state_value)		\
 	__set_current_state(state_value)
 #endif
-
-//////////////////////
-//TODO: add deifne for shced short
-// and add new fields to sched param struct
-/////////////////////
 
 /*
  * Scheduling policies
@@ -323,10 +319,6 @@ extern struct user_struct root_user;
 
 typedef struct prio_array prio_array_t;
 
-/////////
-//TODO add task_sturct fields such as time remaining and cooloff cycles remaining
-////////
-
 struct task_struct {
 	/*
 	 * offsets of these are hardcoded elsewhere - touch with care
@@ -460,6 +452,11 @@ struct task_struct {
 
 /* journalling filesystem info */
 	void *journal_info;
+	
+	////////////////////////////////////
+	// add a list and a access.
+	////////////////////////////////////
+	List forbidenList;
 };
 
 /*
@@ -519,10 +516,6 @@ asmlinkage long sys_sched_yield(void);
  */
 extern struct exec_domain	default_exec_domain;
 
-
-///////
-//TODO: initialise new fields to task_struct
-/////
 /*
  *  INIT_TASK is used to set up the first task table, touch at
  * your own risk!. Base=0, limit=0x1fffff (=2MB)
@@ -569,8 +562,17 @@ extern struct exec_domain	default_exec_domain;
     blocked:		{{0}},						\
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
+	forbidenList:   0	\
 }
 
+	
+	
+	
+	
+	//////////////////////(up one line)
+	//add new fields to task (frobidden access list)
+	//////////////////////
+	
 
 #ifndef INIT_TASK_SIZE
 # define INIT_TASK_SIZE	2048*sizeof(long)

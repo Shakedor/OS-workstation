@@ -3,7 +3,7 @@ SHOUDL CONTAIN REQUESTED TIME AND NUMBER OF COOL OFF CYCLES
 should return -1 if number of trials is lillegal
 should return "Operatio not permitted" if trying to convert a short to another process
 
-2 set short process overdue definition
+2 change runqueue to account for shots processes
 
 3 block changes from short to non short
 
@@ -13,7 +13,7 @@ should return "Operatio not permitted" if trying to convert a short to another p
 
 6 add 2 runqueues for short and overdue short
 
-7 see that shortprocesses can fork like normal processes (note that the son goes to head of queue and father to end of queue)
+7 see that short processes can fork like normal processes (note that the son goes to head of queue and father to end of queue)
 also note that remaining time and number of cycles must be divided.
 
 8 make a fifo line without timeslices for the short overdue

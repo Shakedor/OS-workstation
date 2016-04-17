@@ -126,6 +126,9 @@ struct prio_array {
 	list_t queue[MAX_PRIO];
 };
 
+//////////
+//TODO : add 2 more prio arrays and other fields for the runqueue struct
+/////////
 /*
  * This is the main, per-CPU runqueue data structure.
  *
@@ -251,6 +254,10 @@ static inline int effective_prio(task_t *p)
 		prio = MAX_PRIO-1;
 	return prio;
 }
+
+///////
+// TODO : change or added functionality to activate and deactivate task
+//////
 
 static inline void activate_task(task_t *p, runqueue_t *rq)
 {
@@ -714,6 +721,12 @@ static inline void idle_tick(void)
 		(jiffies - (rq)->expired_timestamp >= \
 			STARVATION_LIMIT * ((rq)->nr_running) + 1))
 
+			
+///////////
+//TODO: change scheduler tick so it updates short processes accoridingly,
+// raising need resched if remaining time is over 
+//////////////
+			
 /*
  * This function gets called by the timer code, with HZ frequency.
  * We call it with interrupts disabled.
@@ -794,6 +807,11 @@ out:
 
 void scheduling_functions_start_here(void) { }
 
+
+///////////////
+//TODO : change pick next to fit HW specifications
+
+/////////////////
 /*
  * 'schedule()' is the main scheduler function.
  */
@@ -1031,6 +1049,9 @@ long sleep_on_timeout(wait_queue_head_t *q, long timeout)
 
 void scheduling_functions_end_here(void) { }
 
+//////////
+//TODO maybe ride on set user nice to change other task params
+//////////
 void set_user_nice(task_t *p, long nice)
 {
 	unsigned long flags;
@@ -1129,6 +1150,12 @@ static inline task_t *find_process_by_pid(pid_t pid)
 	return pid ? find_task_by_pid(pid) : current;
 }
 
+
+/////////
+//TODO change set and get scheduler to fit HW specifications
+// allow changes to sched short and block changes from sched short
+// allow changing params and return appropriate ret vals
+////////////
 static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 {
 	struct sched_param lp;
@@ -1369,6 +1396,9 @@ out_unlock:
 	return real_len;
 }
 
+////////
+//TODO : make sure short yields are directed to short prio array
+////////
 asmlinkage long sys_sched_yield(void)
 {
 	runqueue_t *rq = this_rq_lock();
