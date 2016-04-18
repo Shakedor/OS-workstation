@@ -124,9 +124,12 @@ extern unsigned long nr_uninterruptible(void);
 #define SCHED_OTHER		0
 #define SCHED_FIFO		1
 #define SCHED_RR		2
+#define SCHED_SHORT		5
 
 struct sched_param {
 	int sched_priority;
+	int requested_time;
+	int cycles_num;
 };
 
 struct completion;
@@ -460,6 +463,14 @@ struct task_struct {
 
 /* journalling filesystem info */
 	void *journal_info;
+	
+/////////////
+/* new short process info */
+
+	int remaining_time;
+	int remaining_cycles;
+	int is_overdue;
+	
 };
 
 /*
@@ -521,7 +532,7 @@ extern struct exec_domain	default_exec_domain;
 
 
 ///////
-//TODO: initialise new fields to task_struct
+//TODO: initialise new fields to task
 /////
 /*
  *  INIT_TASK is used to set up the first task table, touch at
@@ -569,6 +580,9 @@ extern struct exec_domain	default_exec_domain;
     blocked:		{{0}},						\
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
+	remaining_time: 0,							\
+	remaining_cycles: 0,							\
+	is_overdue: 0,							\
 }
 
 
