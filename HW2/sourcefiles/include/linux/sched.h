@@ -114,7 +114,7 @@ extern unsigned long nr_uninterruptible(void);
 #endif
 
 //////////////////////
-//TODO: add deifne for shced short
+// add deifne for shced short
 // and add new fields to sched param struct
 /////////////////////
 
@@ -327,7 +327,7 @@ extern struct user_struct root_user;
 typedef struct prio_array prio_array_t;
 
 /////////
-//TODO add task_sturct fields such as time remaining and cooloff cycles remaining
+//add task_sturct fields such as time remaining and cooloff cycles remaining
 ////////
 
 struct task_struct {
@@ -466,7 +466,8 @@ struct task_struct {
 	
 /////////////
 /* new short process info */
-
+	int requested_time;
+	int requested_cycles;
 	int remaining_time;
 	int remaining_cycles;
 	int is_overdue;
@@ -532,7 +533,7 @@ extern struct exec_domain	default_exec_domain;
 
 
 ///////
-//TODO: initialise new fields to task
+//initialise new fields to task
 /////
 /*
  *  INIT_TASK is used to set up the first task table, touch at
@@ -580,6 +581,8 @@ extern struct exec_domain	default_exec_domain;
     blocked:		{{0}},						\
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
+	requested_time: 0,							\
+	requested_cycles: 0,							\
 	remaining_time: 0,							\
 	remaining_cycles: 0,							\
 	is_overdue: 0,							\

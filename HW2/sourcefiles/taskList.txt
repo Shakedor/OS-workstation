@@ -40,10 +40,10 @@ and the requested time can only be changed by the procecess' user or root
 
 
 
+15 check if changes to exit are needed
 
 
-
-
+16 add enque and deque of overdue prioarray
 
 
 to find: conversion between milisecs and ticks

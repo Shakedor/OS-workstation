@@ -16,6 +16,11 @@
  *  		Libenzi, Robert Love, and Rusty Russell.
  */
 
+ ///////
+ // DEBUG flags
+ 
+ //#define DEBUG_activate
+ 
 #include <linux/mm.h>
 #include <linux/nmi.h>
 #include <linux/init.h>
@@ -127,7 +132,7 @@ struct prio_array {
 };
 
 //////////
-//TODO : add 2 more prio arrays and other fields for the runqueue struct
+//add 2 more prio arrays and other fields for the runqueue struct
 /////////
 /*
  * This is the main, per-CPU runqueue data structure.
@@ -209,23 +214,76 @@ static inline void rq_unlock(runqueue_t *rq)
 	spin_unlock(&rq->lock);
 	local_irq_enable();
 }
+/////////////
+// change enqueue and dequeue to fit overdue prioarray
+///////////
 
 /*
  * Adding/removing a task to/from a priority array:
  */
 static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 {
-	array->nr_active--;
+	runqueue_t *rq = this_rq();
+	
+	// if not short
+	// dec nr_active remove from list, clear bit according to prio
+	
+	// if short and regular 
+	// remove from list clear bit according to prio
+	
+	//if overdue short
+	//remove from list and clear with constant queue
+	
+	if(array == this_rq->active){
+		array->nr_active--;
+	}
+	
 	list_del(&p->run_list);
-	if (list_empty(array->queue + p->prio))
-		__clear_bit(p->prio, array->bitmap);
+	
+	if(array != s_overdue){// s_active or active
+		if (list_empty(array->queue + p->prio))
+			__clear_bit(p->prio, array->bitmap);
+	
+	}else{//s_overdue
+		if (list_empty(array->queue + 0))
+			__clear_bit(0, array->bitmap);
+	}
+
+	
+	
 }
 
 static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
-{
-	list_add_tail(&p->run_list, array->queue + p->prio);
-	__set_bit(p->prio, array->bitmap);
-	array->nr_active++;
+{	
+	runqueue_t *rq = this_rq();
+	
+	//if not short 
+	//increment  nr_active set bit according to prio 
+	//add tail according to prio
+	
+	//if reg short
+	//set bit according to prio
+	// add tail according to prio
+	
+	//if overdue short
+	// set bit in constant queue
+	// add tail in constant queue
+	
+	
+	if(array != s_overdue){// s_active or active
+		list_add_tail(&p->run_list, array->queue + p->prio);
+		__set_bit(p->prio, array->bitmap);
+	
+	}else{//s_overdue
+		list_add_tail(&p->run_list, array->queue + 0);
+		__set_bit(0, array->bitmap);
+	}
+	
+	if(array == this_rq->active){
+		array->nr_active++;
+	}
+	
+	//always set array correctly
 	p->array = array;
 }
 
@@ -256,13 +314,30 @@ static inline int effective_prio(task_t *p)
 }
 
 ///////
-// TODO : change or added functionality to activate and deactivate task
+//change or added functionality to activate and deactivate task
 //////
 
 static inline void activate_task(task_t *p, runqueue_t *rq)
 {
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
-	prio_array_t *array = rq->active;
+	prio_array_t *array;
+	
+	if(p->policy==SCHED_SHORT){
+		if(p->is_overdue){
+			array=rq->s_overdue;
+		}
+		else{
+			array=rq->s_active;
+
+		}
+	}
+	else{	
+		array= rq->active;		
+	}
+	
+	#ifdef DEBUG_activate
+	printk("activated task %d , policy is %ul overdue flag is %d",p->pid,p->policy,p->overdue);
+	#endif
 
 	if (!rt_task(p) && sleep_time) {
 		/*
@@ -723,7 +798,7 @@ static inline void idle_tick(void)
 
 			
 ///////////
-//TODO: change scheduler tick so it updates short processes accoridingly,
+//change scheduler tick so it updates short processes accoridingly,
 // raising need resched if remaining time is over 
 //////////////
 			
@@ -752,7 +827,7 @@ void scheduler_tick(int user_tick, int system)
 	kstat.per_cpu_system[cpu] += system;
 
 	/* Task might have expired already, but not scheduled off yet */
-	if (p->array != rq->active) {
+	if (p->array == rq->expired) {
 		set_tsk_need_resched(p);
 		return;
 	}
@@ -781,21 +856,60 @@ void scheduler_tick(int user_tick, int system)
 	 * it possible for interactive tasks to use up their
 	 * timeslices at their highest priority levels.
 	 */
-	if (p->sleep_avg)
-		p->sleep_avg--;
-	if (!--p->time_slice) {
-		dequeue_task(p, rq->active);
-		set_tsk_need_resched(p);
-		p->prio = effective_prio(p);
-		p->first_time_slice = 0;
-		p->time_slice = TASK_TIMESLICE(p);
+	if(p->policy != SCHED_SHORT){ // in case is in active/expired rq routine
+		if (p->sleep_avg)
+			p->sleep_avg--;
+		if (!--p->time_slice) {
+			dequeue_task(p, rq->active);
+			set_tsk_need_resched(p);
+			p->prio = effective_prio(p);
+			p->first_time_slice = 0;
+			p->time_slice = TASK_TIMESLICE(p);
 
-		if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
-			if (!rq->expired_timestamp)
-				rq->expired_timestamp = jiffies;
-			enqueue_task(p, rq->expired);
-		} else
-			enqueue_task(p, rq->active);
+			if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
+				if (!rq->expired_timestamp)
+					rq->expired_timestamp = jiffies;
+				enqueue_task(p, rq->expired);
+			} else
+				enqueue_task(p, rq->active);
+		}
+	}
+	else { // in case of shot order
+		// decrement remaining time
+		//if zero
+		if(!--p->remaining_time){
+		
+			//check wether its overdue or not
+			if(!p->is_overdue){
+			// if regular short reset remaining time, decrement cycles 
+			//turn on is overdue and remove from short array and add to overdue array
+				p->remaining_time=p->requested_time;
+				--p->remaining_cycles;
+				p->is_overdue=1;
+				dequeue_task(p,rq->s_active);
+				enqueue_task(p,rq->s_overdue);			
+			}
+			else{// if overdue short
+				// reset remaining time,
+				p->remaining_time=p->requested_time;
+				
+				// if temp overdue turn off overdue flag 
+				//and remove from overdue and return to reg short array
+				if(p->remaining_cycles >=0 ){ // if temp overdue
+					p->is_overdue=0;
+					dequeue_task(p,rq->s_overdue);	
+					enqueue_task(p,rq->s_active);			
+
+				}
+				// if perma overdue deque and enque from overdue array
+				else{
+					dequeue_task(p,rq->s_overdue);	
+					enqueue_task(p,rq->s_overdue);	
+				}
+		
+			}
+		
+		}
 	}
 out:
 #if CONFIG_SMP
@@ -859,6 +973,8 @@ pick_next_task:
 		rq->expired_timestamp = 0;
 		goto switch_tasks;
 	}
+
+/// fun starts here
 
 	array = rq->active;
 	if (unlikely(!array->nr_active)) {
