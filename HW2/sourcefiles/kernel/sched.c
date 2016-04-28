@@ -473,6 +473,27 @@ int wake_up_process(task_t * p)
 	return try_to_wake_up(p, 0);
 }
 
+static inline void enqueue_short_task(struct task_struct *p, prio_array_t *array)
+{
+    /* this function will only be used in wake_up_forked_task to put child SHORT process first in the short_queue so it will run first */
+    int fixed_prio;
+    if (p->policy == SCHED_SHORT) {
+        if (p->is_overdue == 1) {
+            fixed_prio = p->static_prio;    
+        }
+        else {
+            fixed_prio = p->prio - MAX_USER_RT_PRIO;
+        }
+    }
+    else {
+        fixed_prio=p->prio;
+    }
+    list_add(&p->run_list, array->queue + fixed_prio);
+    __set_bit(fixed_prio, array->bitmap);
+    array->nr_active++;
+    p->array = array;
+}
+
 
 void wake_up_forked_process(task_t * p)
 {
@@ -489,8 +510,33 @@ void wake_up_forked_process(task_t * p)
 		p->sleep_avg = p->sleep_avg * CHILD_PENALTY / 100;
 		p->prio = (p->policy==SCHED_SHORT) ? p->static_prio : effective_prio(p);
 	}
+	if (current->policy == SCHED_SHORT && current->is_overdue == 0) {
+		p->is_overdue = 0;
+		p->static_prio = current->static_prio;
+		p->requested_time = current->requested_time;
+		p->requested_cycles = current->requested_cycles;
+		p->remaining_time = ((current->remaining_time) / 2) + ((current->remaining_time) % 2);
+		p->remaining_cycles = ((current->remaining_cycles) / 2) + ((current->remaining_cycles) % 2);
+		current->remaining_cycles = ((current->remaining_cycles) / 2);
+		current->remaining_time = ((current->remaining_time) / 2);
+		dequeue_task(current, current->array);
+		enqueue_task(current, current->array);
+	}
+	if (current->policy == SCHED_SHORT && current->is_overdue == 1) {
+		p->is_overdue = 1;
+		p->static_prio = current->static_prio;
+		p->requested_time = current->requested_time;
+		p->requested_cycles = current->requested_cycles;
+		p->remaining_time = current->remaining_time;
+		p->remaining_cycles = current->remaining_cycles;
+	}
 	p->cpu = smp_processor_id();
 	activate_task(p, rq);
+	// put the child proccess in the start of the runqueue
+	if (p->policy == SCHED_SHORT && p->is_overdue == 0) {
+		dequeue_task(p, p->array);
+		enqueue_short_task(p, p->array);
+	}
 
 	rq_unlock(rq);
 }
