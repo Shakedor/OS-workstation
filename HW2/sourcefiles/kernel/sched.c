@@ -146,7 +146,7 @@ struct runqueue {
 	unsigned long nr_running, nr_switches, expired_timestamp;
 	signed long nr_uninterruptible;
 	task_t *curr, *idle;
-	prio_array_t *active, *expired, *s_active,*s_overdue arrays[4];
+	prio_array_t *active, *expired, *s_active,*s_overdue, arrays[4];
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;
@@ -234,13 +234,13 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 	//if overdue short
 	//remove from list and clear with constant queue
 	
-	if(array == this_rq->active){
+	if(array == rq->active){
 		array->nr_active--;
 	}
 	
 	list_del(&p->run_list);
 	
-	if(array != s_overdue){// s_active or active
+	if(array != rq->s_overdue){// s_active or active
 		if (list_empty(array->queue + p->prio))
 			__clear_bit(p->prio, array->bitmap);
 	
@@ -270,7 +270,7 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 	// add tail in constant queue
 	
 	
-	if(array != s_overdue){// s_active or active
+	if(array != rq->s_overdue){// s_active or active
 		list_add_tail(&p->run_list, array->queue + p->prio);
 		__set_bit(p->prio, array->bitmap);
 	
@@ -279,7 +279,7 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 		__set_bit(0, array->bitmap);
 	}
 	
-	if(array == this_rq->active){
+	if(array == rq->active){
 		array->nr_active++;
 	}
 	
@@ -1856,10 +1856,14 @@ extern void timer_bh(void);
 extern void tqueue_bh(void);
 extern void immediate_bh(void);
 
+///////////
+// update initialization
+///////////
 void __init sched_init(void)
 {
 	runqueue_t *rq;
 	int i, j, k;
+
 
 	for (i = 0; i < NR_CPUS; i++) {
 		prio_array_t *array;
@@ -1867,10 +1871,12 @@ void __init sched_init(void)
 		rq = cpu_rq(i);
 		rq->active = rq->arrays;
 		rq->expired = rq->arrays + 1;
+		rq->s_active = rq->arrays + 2;
+		rq->s_overdue = rq->arrays + 3;
 		spin_lock_init(&rq->lock);
 		INIT_LIST_HEAD(&rq->migration_queue);
 
-		for (j = 0; j < 2; j++) {
+		for (j = 0; j < 4; j++) {
 			array = rq->arrays + j;
 			for (k = 0; k < MAX_PRIO; k++) {
 				INIT_LIST_HEAD(array->queue + k);
@@ -1880,6 +1886,7 @@ void __init sched_init(void)
 			__set_bit(MAX_PRIO, array->bitmap);
 		}
 	}
+	
 	/*
 	 * We have to do a little magic to get the first
 	 * process right in SMP mode.
