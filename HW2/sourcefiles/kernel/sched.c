@@ -219,14 +219,6 @@ static inline void rq_unlock(runqueue_t *rq)
 // change enqueue and dequeue to fit overdue prioarray
 ///////////
 
-void dequeue_task_wrap(struct task_struct *p, prio_array_t *array){
-	dequeue_task(p,array);
-}
-
-void enqueue_task_wrap(struct task_struct *p, prio_array_t *array){
-	enqueue_task(p,array);
-}
-
 /*
  * Adding/removing a task to/from a priority array:
  */
@@ -243,9 +235,9 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 	//if overdue short
 	//remove from list and clear with constant queue
 	
-	
-	array->nr_active--;
-	
+	if(array == rq->active){
+		array->nr_active--;
+	}
 	
 	list_del(&p->run_list);
 	
@@ -288,9 +280,9 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 		__set_bit(0, array->bitmap);
 	}
 	
-	
-	array->nr_active++;
-	
+	if(array == rq->active){
+		array->nr_active++;
+	}
 	
 	//always set array correctly
 	p->array = array;
@@ -519,8 +511,26 @@ void wake_up_forked_process(task_t * p)
 		p->sleep_avg = p->sleep_avg * CHILD_PENALTY / 100;
 		p->prio = (p->policy==SCHED_SHORT) ? p->static_prio : effective_prio(p);
 	}
-
-
+	if (current->policy == SCHED_SHORT && current->is_overdue == 0) {
+		p->is_overdue = 0;
+		p->static_prio = current->static_prio;
+		p->requested_time = current->requested_time;
+		p->requested_cycles = current->requested_cycles;
+		p->remaining_time = ((current->remaining_time) / 2) + ((current->remaining_time) % 2);
+		p->remaining_cycles = ((current->remaining_cycles) / 2) + ((current->remaining_cycles) % 2);
+		current->remaining_cycles = ((current->remaining_cycles) / 2);
+		current->remaining_time = ((current->remaining_time) / 2);
+		dequeue_task(current, current->array);
+		enqueue_task(current, current->array);
+	}
+	if (current->policy == SCHED_SHORT && current->is_overdue == 1) {
+		p->is_overdue = 1;
+		p->static_prio = current->static_prio;
+		p->requested_time = current->requested_time;
+		p->requested_cycles = current->requested_cycles;
+		p->remaining_time = current->remaining_time;
+		p->remaining_cycles = current->remaining_cycles;
+	}
 	p->cpu = smp_processor_id();
 	activate_task(p, rq);
 	// put the child proccess in the start of the runqueue
@@ -849,8 +859,7 @@ void scheduler_tick(int user_tick, int system)
 	int cpu = smp_processor_id();
 	runqueue_t *rq = this_rq();
 	task_t *p = current;
-	
-	
+
 	if (p == rq->idle) {
 		if (local_bh_count(cpu) || local_irq_count(cpu) > 1)
 			kstat.per_cpu_system[cpu] += system;
