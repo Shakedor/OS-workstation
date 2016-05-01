@@ -19,6 +19,7 @@
  ///////
  // DEBUG flags
  
+ #define SetSchedDEBUG
  //#define DEBUG_activate
  
 #include <linux/mm.h>
@@ -915,6 +916,9 @@ void scheduler_tick(int user_tick, int system)
 	else { // in case of short order
 		// decrement remaining time
 		//if zero
+		
+		printk("tick in short \n");
+		
 		if(!--p->remaining_time){
 		
 			//check wether its overdue or not
@@ -1350,6 +1354,11 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if (!p)
 		goto out_unlock_tasklist;
 
+	#ifdef SetSchedDEBUG
+	printk(" in set scheduler found pid \n");
+	printk("pid is %d ,policy is %d , current->policy is %d\n",pid,policy,p->policy);
+	#endif
+	
 	/*
 	 * To be able to change p->policy safely, the apropriate
 	 * runqueue lock must be held.
@@ -1359,13 +1368,23 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	//changing short's remaining time or changing a non short into short.
 	retval = -EINVAL;
 	if(policy == SCHED_SHORT){//wanna change into short
-		if(lp.requested_time < 1 || lp.requested_time > 3000 || lp.requested_cycles <0 || lp.requested_cycles >5)
+		#ifdef SetSchedDEBUG
+		printk(" trying to change to short! \n");
+		#endif
+		if(lp.requested_time < 1 || lp.requested_time > 3000 || lp.requested_cycles <0 || lp.requested_cycles >5){
+			#ifdef SetSchedDEBUG
+			printk(" bad params cannto change to short \n");
+			#endif
 			goto out_unlock;
+		}
 		p->requested_time = lp.requested_time;
 		p->requested_cycles =  lp.requested_cycles;
 	}
 	
 	if(p->policy == SCHED_SHORT){ //already short and wanna change params
+		#ifdef SetSchedDEBUG
+		printk(" already short changing params \n");
+		#endif
 		if(lp.requested_time < 1 || lp.requested_time > 3000 )
 			goto out_unlock;
 		p->requested_time = lp.requested_time;
@@ -1377,8 +1396,12 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	else {
 		retval = -EINVAL;
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
-				policy != SCHED_OTHER && policy != SCHED_SHORT)
+				policy != SCHED_OTHER && policy != SCHED_SHORT){
+			#ifdef SetSchedDEBUG
+			printk(" current policy is unknown \n");
+			#endif
 			goto out_unlock;
+		}
 	}
 
 	/*
@@ -1386,11 +1409,23 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 * 1..MAX_USER_RT_PRIO-1, valid priority for SCHED_OTHER is 0.
 	 */
 	retval = -EINVAL;
-	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1)
+	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1){
+		#ifdef SetSchedDEBUG
+		printk(" requested priority is unknown, returning einval \n");
+		#endif
 		goto out_unlock;
-	if ((policy == SCHED_OTHER || (policy == SCHED_SHORT) ) != (lp.sched_priority == 0))
+	}
+		
+	if ((policy == SCHED_OTHER ) != (lp.sched_priority == 0)){	
+		#ifdef SetSchedDEBUG
+		printk(" cannot have priority 0 if changing to OTHER \n");
+		#endif		
 		goto out_unlock;
+	}
 
+	#ifdef SetSchedDEBUG
+	printk(" changing to EPERM ret val \n");
+	#endif
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
@@ -1402,6 +1437,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
+	#ifdef SetSchedDEBUG
+	printk(" changing policy, retval should become 0 \n");
+	#endif
 	retval = 0;
 	p->policy = policy;
 	p->rt_priority = lp.sched_priority;
@@ -1418,6 +1456,12 @@ out_unlock_tasklist:
 	read_unlock_irq(&tasklist_lock);
 
 out_nounlock:
+	#ifdef SetSchedDEBUG
+	printk(" retval returned is %d \n",retval);
+	#endif
+	#ifdef SetSchedDEBUG
+	printk(" herehrehrehre \n" );
+	#endif
 	return retval;
 }
 

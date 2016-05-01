@@ -10,7 +10,7 @@ asmlinkage int sys_is_SHORT(int pid) {
 	if(p == NULL) {
 		return -EINVAL;
 	}
-	if (p->is_overdue != 1 && p->policy != SCHED_SHORT) {
+	if (p->policy != SCHED_SHORT) {
 		return -EINVAL;
 	}
 	if(p->is_overdue == 1) {

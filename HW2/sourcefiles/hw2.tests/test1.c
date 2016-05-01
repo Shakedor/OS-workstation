@@ -64,10 +64,17 @@ int test1() {
         ASSERT_POSITIVE(mypid);
         
         nice(1); // be nicer than child
+		printf("tock0 \n");
+
         ASSERT_ZERO(sched_setscheduler(mypid, SCHED_SHORT, &params));
+		printf("tock \n");
         ASSERT_EQUALS(sched_setscheduler(mypid, SCHED_SHORT, &params), -1);
+		printf("tock2 \n");
         ASSERT_EQUALS(errno, EPERM);
+		printf("tock3 \n");
         ASSERT_EQUALS(is_SHORT(mypid), 1);
+		
+		printf("passed father block 1 \n");
         
         smem->arr[smem->curr] = FATHER+0; // init value
         
