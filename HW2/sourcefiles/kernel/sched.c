@@ -219,6 +219,8 @@ static inline void rq_unlock(runqueue_t *rq)
 // change enqueue and dequeue to fit overdue prioarray
 ///////////
 
+
+
 /*
  * Adding/removing a task to/from a priority array:
  */
@@ -235,10 +237,8 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 	//if overdue short
 	//remove from list and clear with constant queue
 	
-	if(array == rq->active){
-		array->nr_active--;
-	}
-	
+	array->nr_active--;
+		
 	list_del(&p->run_list);
 	
 	if(array != rq->s_overdue){// s_active or active
@@ -280,12 +280,19 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 		__set_bit(0, array->bitmap);
 	}
 	
-	if(array == rq->active){
-		array->nr_active++;
-	}
+	array->nr_active++;
+	
 	
 	//always set array correctly
 	p->array = array;
+}
+
+void dequeue_task_wrap(struct task_struct *p, prio_array_t *array){
+	dequeue_task(p,array);
+}
+
+void enqueue_task_wrap(struct task_struct *p, prio_array_t *array){
+	enqueue_task(p,array);
 }
 
 static inline int effective_prio(task_t *p)
@@ -511,26 +518,7 @@ void wake_up_forked_process(task_t * p)
 		p->sleep_avg = p->sleep_avg * CHILD_PENALTY / 100;
 		p->prio = (p->policy==SCHED_SHORT) ? p->static_prio : effective_prio(p);
 	}
-	if (current->policy == SCHED_SHORT && current->is_overdue == 0) {
-		p->is_overdue = 0;
-		p->static_prio = current->static_prio;
-		p->requested_time = current->requested_time;
-		p->requested_cycles = current->requested_cycles;
-		p->remaining_time = ((current->remaining_time) / 2) + ((current->remaining_time) % 2);
-		p->remaining_cycles = ((current->remaining_cycles) / 2) + ((current->remaining_cycles) % 2);
-		current->remaining_cycles = ((current->remaining_cycles) / 2);
-		current->remaining_time = ((current->remaining_time) / 2);
-		dequeue_task(current, current->array);
-		enqueue_task(current, current->array);
-	}
-	if (current->policy == SCHED_SHORT && current->is_overdue == 1) {
-		p->is_overdue = 1;
-		p->static_prio = current->static_prio;
-		p->requested_time = current->requested_time;
-		p->requested_cycles = current->requested_cycles;
-		p->remaining_time = current->remaining_time;
-		p->remaining_cycles = current->remaining_cycles;
-	}
+
 	p->cpu = smp_processor_id();
 	activate_task(p, rq);
 	// put the child proccess in the start of the runqueue
@@ -985,7 +973,7 @@ asmlinkage void schedule(void)
 	task_t *prev, *next;
 	runqueue_t *rq;
 	prio_array_t *array;
-	list_t *queue;
+	list_t *queue=NULL;
 	int idx;
 
 	if (unlikely(in_interrupt()))
@@ -1345,13 +1333,13 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	runqueue_t *rq;
 	task_t *p;
 
-	if (!param || pid < 0)
+	if (!param || pid < 0){
 		goto out_nounlock;
-
+	}
 	retval = -EFAULT;
-	if (copy_from_user(&lp, param, sizeof(struct sched_param)))
+	if (copy_from_user(&lp, param, sizeof(struct sched_param))){
 		goto out_nounlock;
-
+	}
 	/*
 	 * We play safe to avoid deadlocks.
 	 */
@@ -1360,14 +1348,10 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p = find_process_by_pid(pid);
 
 	retval = -ESRCH;
-	if (!p)
+	if (!p){
 		goto out_unlock_tasklist;
+	}
 
-	#ifdef SetSchedDEBUG
-	printk(" in set scheduler found pid \n");
-	printk("pid is %d ,policy is %d , current->policy is %d\n",pid,policy,p->policy);
-	#endif
-	
 	/*
 	 * To be able to change p->policy safely, the apropriate
 	 * runqueue lock must be held.
@@ -1376,14 +1360,8 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 
 	//changing short's remaining time or changing a non short into short.
 	retval = -EINVAL;
-	if(policy == SCHED_SHORT){//wanna change into short
-		#ifdef SetSchedDEBUG
-		printk(" trying to change to short! \n");
-		#endif
+	if(policy == SCHED_SHORT){
 		if(lp.requested_time < 1 || lp.requested_time > 3000 || lp.requested_cycles <0 || lp.requested_cycles >5){
-			#ifdef SetSchedDEBUG
-			printk(" bad params cannto change to short \n");
-			#endif
 			goto out_unlock;
 		}
 		p->requested_time = lp.requested_time;
@@ -1391,9 +1369,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	}
 	
 	if(p->policy == SCHED_SHORT){ //already short and wanna change params
-		#ifdef SetSchedDEBUG
-		printk(" already short changing params \n");
-		#endif
+
 		if(lp.requested_time < 1 || lp.requested_time > 3000 )
 			goto out_unlock;
 		p->requested_time = lp.requested_time;
@@ -1406,9 +1382,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		retval = -EINVAL;
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
 				policy != SCHED_OTHER && policy != SCHED_SHORT){
-			#ifdef SetSchedDEBUG
-			printk(" current policy is unknown \n");
-			#endif
+
 			goto out_unlock;
 		}
 	}
@@ -1419,22 +1393,15 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 */
 	retval = -EINVAL;
 	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1){
-		#ifdef SetSchedDEBUG
-		printk(" requested priority is unknown, returning einval \n");
-		#endif
 		goto out_unlock;
 	}
 		
-	if ((policy == SCHED_OTHER ) != (lp.sched_priority == 0)){	
-		#ifdef SetSchedDEBUG
-		printk(" cannot have priority 0 if changing to OTHER \n");
-		#endif		
+	if (( (policy == SCHED_OTHER) ||(policy==SCHED_SHORT)) != (lp.sched_priority == 0)){	
+	
 		goto out_unlock;
 	}
 
-	#ifdef SetSchedDEBUG
-	printk(" changing to EPERM ret val \n");
-	#endif
+
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
@@ -1446,9 +1413,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
-	#ifdef SetSchedDEBUG
-	printk(" changing policy, retval should become 0 \n");
-	#endif
+
 	retval = 0;
 	p->policy = policy;
 	p->rt_priority = lp.sched_priority;
@@ -1465,12 +1430,7 @@ out_unlock_tasklist:
 	read_unlock_irq(&tasklist_lock);
 
 out_nounlock:
-	#ifdef SetSchedDEBUG
-	printk(" retval returned is %d \n",retval);
-	#endif
-	#ifdef SetSchedDEBUG
-	printk(" herehrehrehre \n" );
-	#endif
+
 	return retval;
 }
 
