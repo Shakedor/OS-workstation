@@ -575,6 +575,9 @@ static inline void copy_flags(unsigned long clone_flags, struct task_struct *p)
 	p->flags = new_flags;
 }
 
+//////////////////
+/// change behaviour for time requested splitting
+//////////
 /*
  *  Ok, this is the main fork-routine. It copies the system process
  * information (task[nr]) and sets up the necessary registers. It also
@@ -723,21 +726,54 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	 */
 	__save_flags(flags);
 	__cli();
-	if (!current->time_slice)
-		BUG();
-	p->time_slice = (current->time_slice + 1) >> 1;
-	p->first_time_slice = 1;
-	current->time_slice >>= 1;
-	p->sleep_timestamp = jiffies;
-	if (!current->time_slice) {
-		/*
-		 * This case is rare, it happens when the parent has only
-		 * a single jiffy left from its timeslice. Taking the
-		 * runqueue lock is not a problem.
-		 */
-		current->time_slice = 1;
-		scheduler_tick(0,0);
+	if(current->policy != SCHED_SHORT){
+		if (!current->time_slice)
+			BUG();
+		p->time_slice = (current->time_slice + 1) >> 1;
+		p->first_time_slice = 1;
+		current->time_slice >>= 1;
+		p->sleep_timestamp = jiffies;
+		if (!current->time_slice) {
+			/*
+			 * This case is rare, it happens when the parent has only
+			 * a single jiffy left from its timeslice. Taking the
+			 * runqueue lock is not a problem.
+			 */
+			current->time_slice = 1;
+			scheduler_tick(0,0);
+		}
 	}
+	if (current->policy == SCHED_SHORT && current->is_overdue == 0) {//// reg short
+		p->is_overdue = 0;
+		p->static_prio = current->static_prio;
+		p->requested_time = current->requested_time;
+		p->requested_cycles = current->requested_cycles;
+		p->remaining_time = ((current->remaining_time) / 2) + ((current->remaining_time) % 2);
+		p->remaining_cycles = ((current->remaining_cycles) / 2) + ((current->remaining_cycles) % 2);
+		current->remaining_cycles = ((current->remaining_cycles) / 2);
+		current->remaining_time = ((current->remaining_time) / 2);
+		if(!current->remaining_time){
+			/*
+			 * This case is rare, it happens when the parent has only
+			 * a single tick left from its requested time. Taking the
+			 * runqueue lock is not a problem.
+			 */
+			current->requested_time = 1;
+			scheduler_tick(0,0);
+		}
+		dequeue_task_wrap(current, current->array);
+		enqueue_task_wrap(current, current->array);
+	}
+	if (current->policy == SCHED_SHORT && current->is_overdue == 1) {//// overdue short
+		p->is_overdue = 1;
+		p->static_prio = current->static_prio;
+		p->requested_time = current->requested_time;
+		p->requested_cycles = current->requested_cycles;
+		p->remaining_time = current->remaining_time;
+		p->remaining_cycles = current->remaining_cycles;
+	}
+	
+
 	__restore_flags(flags);
 
 	/*
