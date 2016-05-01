@@ -1440,12 +1440,17 @@ out_nounlock:
 asmlinkage long sys_sched_setscheduler(pid_t pid, int policy,
 				      struct sched_param *param)
 {	
+	printk("pid is %d policy is %d \n",pid,policy);
 	task_t *p;
-	if(pid<0)
+	if(pid<0){
+		printk("bad pid returning einval \n");
 		return -EINVAL;
+	}
 	p = find_process_by_pid(pid);
-	if(p->policy==SCHED_SHORT)
+	if(p->policy==SCHED_SHORT){
+		printk("cant change SHORt returning EPERM\n");
 		return -EPERM;
+	}
 	return setscheduler(pid, policy, param);
 }
 
