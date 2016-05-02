@@ -19,8 +19,8 @@
  ///////
  // DEBUG flags
  
- #define SetSchedDEBUG
- //#define DEBUG_activate
+#define SetSchedDEBUG
+#define DEBUG_activate
  
 #include <linux/mm.h>
 #include <linux/nmi.h>
@@ -132,6 +132,8 @@ struct prio_array {
 	list_t queue[MAX_PRIO];
 };
 
+
+
 //////////
 //add 2 more prio arrays and other fields for the runqueue struct
 /////////
@@ -151,6 +153,10 @@ struct runqueue {
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;
+    /* HW2 monitor */
+	struct switch_info switchInfo[SCHED_SAVES_LIMIT];
+	int switchCounter, switchIndex, switchTotal;
+    /* HW2 monitor */
 } ____cacheline_aligned;
 
 static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
@@ -215,6 +221,10 @@ static inline void rq_unlock(runqueue_t *rq)
 	spin_unlock(&rq->lock);
 	local_irq_enable();
 }
+
+
+
+
 /////////////
 // change enqueue and dequeue to fit overdue prioarray
 ///////////
@@ -332,9 +342,15 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 	
 	if(p->policy==SCHED_SHORT){
 		if(p->is_overdue){
+		#ifdef DEBUG_activate
+		printk("activated overdue short %d , policy is %ul overdue flag is %d prio is %d\n",p->pid,p->policy,p->is_overdue,p->prio);
+		#endif
 			array=rq->s_overdue;
 		}
 		else{
+		#ifdef DEBUG_activate
+		printk("activated regular short %d , policy is %ul overdue flag is %d prio is %d \n",p->pid,p->policy,p->is_overdue,p->prio);
+		#endif
 			array=rq->s_active;
 
 		}
@@ -343,9 +359,7 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 		array= rq->active;		
 	}
 	
-	#ifdef DEBUG_activate
-	printk("activated task %d , policy is %ul overdue flag is %d",p->pid,p->policy,p->overdue);
-	#endif
+
 
 	if (!rt_task(p) && sleep_time) {
 		/*
@@ -467,6 +481,9 @@ repeat_lock_task:
 		 * If sync is set, a resched_task() is a NOOP
 		 */
 		if (p->prio < rq->curr->prio)
+            /* HW2 monitor */
+            current->reason = HIGHER_PRIORITY;
+            /* HW2 monitor */
 			resched_task(rq->curr);
 		success = 1;
 	}
@@ -529,6 +546,74 @@ void wake_up_forked_process(task_t * p)
 
 	rq_unlock(rq);
 }
+
+
+
+/* HW2 monitor */
+int getSwitchTotal() {
+	runqueue_t *rq = this_rq_lock();
+	int tmp = rq->switchTotal;
+	rq_unlock(rq);
+	return tmp;
+}
+int getSwitchIndex() {
+	runqueue_t *rq = this_rq_lock();
+	int tmp = rq->switchIndex;
+	rq_unlock(rq);
+	return tmp;
+}
+struct switch_info* getSwitchInfo() {
+	runqueue_t *rq = this_rq_lock();
+	struct switch_info* tmp = rq->switchInfo;
+	rq_unlock(rq);
+	return tmp;
+}
+/* HW2 monitor */
+
+asmlinkage long sys_sched_yield(void)
+{
+    /* HW2 monitor */
+    current->reason = YEILDS;
+    /* HW2 monitor */
+}
+
+void __init sched_init(void)
+{
+	for (i = 0; i < NR_CPUS; i++) {
+        /* HW2 monitor */
+		rq->switchCounter = 0;
+		rq->switchIndex = 0;
+		rq->switchTotal = 0;
+		/* HW2 monitor */
+	}
+}
+
+asmlinkage int sys_get_scheduling_statistic(struct switch_info *user_switch_info){
+	if (!user_switch_info) { return -EINVAL; }
+	if (getSwitchTotal() >= SCHED_SAVES_LIMIT) {
+		int partSize = (sizeof(struct switch_info))*(SCHED_SAVES_LIMIT - getSwitchIndex());
+		copy_to_user(user_switch_info, getSwitchInfo() + getSwitchIndex() , partSize);
+		partSize = (sizeof(struct switch_info))*getSwitchIndex();
+		copy_to_user(user_switch_info + (SCHED_SAVES_LIMIT - getSwitchIndex()), getSwitchInfo() , partSize);
+		return SCHED_SAVES_LIMIT;
+	} else {
+		int partSize = (sizeof(struct switch_info))*(getSwitchIndex());
+		copy_to_user(user_switch_info, getSwitchInfo() , partSize);
+		return getSwitchTotal();
+	}
+}
+
+asmlinkage int sys_flush_scheduling_statistic(){
+	runqueue_t *rq = this_rq_lock();
+	rq->switchTotal = 0;
+	rq->switchIndex = 0;
+	rq->switchCounter = 0;
+	rq_unlock(rq);
+	return 0;
+}
+
+
+
 
 /*
  * Potentially available exiting-child timeslices are
@@ -896,6 +981,9 @@ void scheduler_tick(int user_tick, int system)
 		if (p->sleep_avg)
 			p->sleep_avg--;
 		if (!--p->time_slice) {
+			/* HW2 monitor */
+			current->reason = TIMESLICE_ENDED;
+			/* HW2 monitor */
 			dequeue_task(p, rq->active);
 			set_tsk_need_resched(p);
 			p->prio = effective_prio(p);
@@ -920,6 +1008,9 @@ void scheduler_tick(int user_tick, int system)
 		
 			//check wether its overdue or not
 			if(!p->is_overdue){
+			/* HW2 monitor */
+            current->reason = BECAME_OVERDUE;
+            /* HW2 monitor */
 			// if regular short reset remaining time, decrement cycles 
 			//turn on is overdue and remove from short array and add to overdue array
 				p->remaining_time=p->requested_time;
@@ -929,6 +1020,9 @@ void scheduler_tick(int user_tick, int system)
 				enqueue_task(p,rq->s_overdue);			
 			}
 			else{// if overdue short
+			/* HW2 monitor */
+            current->reason = OVERDUE_TO_SHORT;
+            /* HW2 monitor */
 				// reset remaining time,
 				p->remaining_time=p->requested_time;
 				
@@ -1046,6 +1140,25 @@ pick_next_task:
 switch_tasks:
 	prefetch(next);
 	clear_tsk_need_resched(prev);
+	
+	    /* HW2 monitor */
+	int csIndex = rq->switchIndex >= SCHED_SAVES_LIMIT ? 0 : rq->switchIndex;
+	if (prev->reason == CREATED ||	prev->reason == ENDED) {
+		rq-> switchCounter = 0;
+	}
+	if (rq->switchCounter < SCHED_MONITORING_LIMIT) {
+		rq->switchInfo[csIndex].previous_pid = prev->pid;
+		rq->switchInfo[csIndex].previous_type = get_task_type(prev);
+		rq->switchInfo[csIndex].next_pid = next->pid;
+		rq->switchInfo[csIndex].next_type = get_task_type(next);
+
+		rq->switchInfo[csIndex].time = jiffies;
+		rq->switchInfo[csIndex].reason = prev->reason;
+		rq->switchIndex = csIndex + 1;
+		(rq->switchTotal)++;
+		(rq->switchCounter)++;
+	}
+	/* HW2 monitor */
 
 	if (likely(prev != next)) {
 		rq->nr_switches++;
@@ -1330,9 +1443,12 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	int retval = -EINVAL;
 	prio_array_t *array;
 	unsigned long flags;
-	runqueue_t *rq;
+	runqueue_t *rq,*dest_rq;
 	task_t *p;
 
+	#ifdef SetSchedDEBUG
+	printk("1337\n");
+	#endif
 	if (!param || pid < 0){
 		goto out_nounlock;
 	}
@@ -1361,7 +1477,13 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	//changing short's remaining time or changing a non short into short.
 	retval = -EINVAL;
 	if(policy == SCHED_SHORT){
+			#ifdef SetSchedDEBUG
+		printk("1368\n");
+		#endif
 		if(lp.requested_time < 1 || lp.requested_time > 3000 || lp.requested_cycles <0 || lp.requested_cycles >5){
+			#ifdef SetSchedDEBUG
+			printk("1372\n");
+			#endif
 			goto out_unlock;
 		}
 		p->requested_time = lp.requested_time;
@@ -1369,10 +1491,16 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	}
 	
 	if(p->policy == SCHED_SHORT){ //already short and wanna change params
-
-		if(lp.requested_time < 1 || lp.requested_time > 3000 )
+		#ifdef SetSchedDEBUG
+		printk("1382\n");
+		#endif
+		if(lp.requested_time < 1 || lp.requested_time > 3000 ){
+			#ifdef SetSchedDEBUG
+			printk("1386\n");
+			#endif
 			goto out_unlock;
 		p->requested_time = lp.requested_time;
+		}
 	}
 	
 	
@@ -1382,7 +1510,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		retval = -EINVAL;
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
 				policy != SCHED_OTHER && policy != SCHED_SHORT){
-
+			#ifdef SetSchedDEBUG
+			printk("1400\n");
+			#endif
 			goto out_unlock;
 		}
 	}
@@ -1393,36 +1523,73 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 */
 	retval = -EINVAL;
 	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1){
+		#ifdef SetSchedDEBUG
+		printk("1413\n");
+		#endif
 		goto out_unlock;
 	}
-		
-	if (( (policy == SCHED_OTHER) ||(policy==SCHED_SHORT)) != (lp.sched_priority == 0)){	
-	
-		goto out_unlock;
+	if(!(policy == SCHED_SHORT || p->policy == SCHED_SHORT)){
+		if ( (policy == SCHED_OTHER)  != (lp.sched_priority == 0)){	
+			#ifdef SetSchedDEBUG
+			printk("1420\n");
+			#endif
+			goto out_unlock;
+		}	
 	}
+
 
 
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
-	    !capable(CAP_SYS_NICE))
+	    !capable(CAP_SYS_NICE)){
+		#ifdef SetSchedDEBUG
+		printk("1430\n");
+		#endif
 		goto out_unlock;
+	}
 	if ((current->euid != p->euid) && (current->euid != p->uid) &&
-	    !capable(CAP_SYS_NICE))
+	    !capable(CAP_SYS_NICE)){
+		#ifdef SetSchedDEBUG
+		printk("1437\n");
+		#endif				
 		goto out_unlock;
+	}
+
 
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
-
+	
+	#ifdef SetSchedDEBUG
+	printk("1446\n");
+	#endif
 	retval = 0;
 	p->policy = policy;
+	#ifdef SetSchedDEBUG
+	printk("moved to policy %d\n",policy);
+	#endif
 	p->rt_priority = lp.sched_priority;
-	if (policy != SCHED_OTHER)
+	if (policy != SCHED_OTHER && policy != SCHED_SHORT){
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
-	else
+	}
+	else{
+		#ifdef SetSchedDEBUG
+		printk("1464 new prio is %d\n",p->static_prio);
+		#endif
 		p->prio = p->static_prio;
-	if (array)
-		activate_task(p, task_rq(p));
+	}
+	if (array){
+		dest_rq=task_rq(p);
+		activate_task(p,dest_rq); //// put task back in place
+		set_need_resched(); // calls schedule in case change caused a preferable process to exist.
+
+	}
+		
+	#ifdef SetSchedDEBUG
+	printk("1461\n");
+	#endif
+	goto out_unlock;
+
 
 out_unlock:
 	task_rq_unlock(rq, &flags);
@@ -1430,6 +1597,9 @@ out_unlock_tasklist:
 	read_unlock_irq(&tasklist_lock);
 
 out_nounlock:
+	#ifdef SetSchedDEBUG
+	printk("1474\n");
+	#endif
 
 	return retval;
 }
@@ -2167,6 +2337,9 @@ int ll_copy_from_user(void *to, const void *from_user, unsigned long len)
 #ifdef CONFIG_LOLAT_SYSCTL
 struct low_latency_enable_struct __enable_lowlatency = { 0, };
 #endif
+
+
+
 
 #endif	/* LOWLATENCY_NEEDED */
 
