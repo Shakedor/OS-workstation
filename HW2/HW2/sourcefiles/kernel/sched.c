@@ -20,7 +20,7 @@
  // DEBUG flags
  
  #define SetSchedDEBUG
- //#define DEBUG_activate
+ #define DEBUG_activate
  
 #include <linux/mm.h>
 #include <linux/nmi.h>
@@ -332,9 +332,15 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 	
 	if(p->policy==SCHED_SHORT){
 		if(p->is_overdue){
+			#ifdef DEBUG_activate
+			printk("activated overdue %d , policy is %ul overdue flag is %d",p->pid,p->policy,p->is_overdue);
+			#endif
 			array=rq->s_overdue;
 		}
 		else{
+			#ifdef DEBUG_activate
+			printk("activated short %d , policy is %ul overdue flag is %d",p->pid,p->policy,p->is_overdue);
+			#endif
 			array=rq->s_active;
 
 		}
@@ -343,9 +349,7 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 		array= rq->active;		
 	}
 	
-	#ifdef DEBUG_activate
-	printk("activated task %d , policy is %ul overdue flag is %d",p->pid,p->policy,p->overdue);
-	#endif
+
 
 	if (!rt_task(p) && sleep_time) {
 		/*
@@ -1357,14 +1361,15 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 * runqueue lock must be held.
 	 */
 	rq = task_rq_lock(p, &flags);
-
+	
+	
 	//changing short's remaining time or changing a non short into short.
 	retval = -EINVAL;
 	if(policy == SCHED_SHORT){
 		if(lp.requested_time < 1 || lp.requested_time > 3000 || lp.requested_cycles <0 || lp.requested_cycles >5){
 			goto out_unlock;
 		}
-		p->requested_time = lp.requested_time;
+		p->requested_time = (lp.requested_time*HZ/1000);
 		p->requested_cycles =  lp.requested_cycles;
 	}
 	
@@ -1396,7 +1401,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		goto out_unlock;
 	}
 		
-	if (( (policy == SCHED_OTHER) ||(policy==SCHED_SHORT)) != (lp.sched_priority == 0)){	
+	if ((policy == SCHED_OTHER) != (lp.sched_priority == 0)){	
 	
 		goto out_unlock;
 	}
@@ -1421,9 +1426,10 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
 	else
 		p->prio = p->static_prio;
-	if (array)
+	if (array){
 		activate_task(p, task_rq(p));
-
+		set_tsk_need_resched(current);
+	}
 out_unlock:
 	task_rq_unlock(rq, &flags);
 out_unlock_tasklist:
