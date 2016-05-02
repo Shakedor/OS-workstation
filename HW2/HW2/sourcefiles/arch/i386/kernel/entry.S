@@ -656,7 +656,9 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_is_SHORT)
 	.long SYMBOL_NAME(sys_remaining_time)
 	.long SYMBOL_NAME(sys_remaining_cooloffs) /* 245 */
-	
+	.long SYMBOL_NAME(sys_get_scheduling_statistic)	/* 246 - logger HW2  */
+	.long SYMBOL_NAME(sys_flush_scheduling_statistic)	/* 247 - logger HW2  */
+
 	.rept NR_syscalls-(.-sys_call_table)/4
 		.long SYMBOL_NAME(sys_ni_syscall)
 	.endr

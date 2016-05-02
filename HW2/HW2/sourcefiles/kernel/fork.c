@@ -685,6 +685,16 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		spin_lock_init(&p->sigmask_lock);
 	}
 #endif
+
+//////////////
+////Test Addition
+//////////////
+
+	 /* HW2 monitor */
+	p->reason = CREATED;
+	/* HW2 monitor */
+////////////END Addition
+
 	p->array = NULL;
 	p->lock_depth = -1;		/* -1 = no lock */
 	p->start_time = jiffies_64;
