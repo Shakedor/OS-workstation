@@ -929,7 +929,8 @@ void scheduler_tick(int user_tick, int system)
 				--p->remaining_cycles;
 				p->is_overdue=1;
 				dequeue_task(p,rq->s_active);
-				enqueue_task(p,rq->s_overdue);			
+				enqueue_task(p,rq->s_overdue);
+				set_tsk_need_resched(p);				
 			}
 			else{// if overdue short
 				// reset remaining time,
@@ -940,13 +941,15 @@ void scheduler_tick(int user_tick, int system)
 				if(p->remaining_cycles >=0 ){ // if temp overdue
 					p->is_overdue=0;
 					dequeue_task(p,rq->s_overdue);	
-					enqueue_task(p,rq->s_active);			
+					enqueue_task(p,rq->s_active);
+					set_tsk_need_resched(p);
 
 				}
 				// if perma overdue deque and enque from overdue array
 				else{
 					dequeue_task(p,rq->s_overdue);	
 					enqueue_task(p,rq->s_overdue);	
+					set_tsk_need_resched(p);
 				}
 		
 			}
