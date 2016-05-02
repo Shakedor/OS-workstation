@@ -741,6 +741,9 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		}
 	}
 	if (current->policy == SCHED_SHORT && current->is_overdue == 0) {
+		   /* HW2 monitor */
+	p->reason = CREATED;
+	/* HW2 monitor */
 		p->is_overdue = 0;
 		p->static_prio = current->static_prio;
 		p->requested_time = current->requested_time;
