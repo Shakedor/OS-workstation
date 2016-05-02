@@ -333,13 +333,13 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 	if(p->policy==SCHED_SHORT){
 		if(p->is_overdue){
 			#ifdef DEBUG_activate
-			printk("activated overdue %d , policy is %ul overdue flag is %d",p->pid,p->policy,p->is_overdue);
+			printk("activated overdue %d , policy is %d overdue flag is %d",p->pid,p->policy,p->is_overdue);
 			#endif
 			array=rq->s_overdue;
 		}
 		else{
 			#ifdef DEBUG_activate
-			printk("activated short %d , policy is %ul overdue flag is %d",p->pid,p->policy,p->is_overdue);
+			printk("activated short %d , policy is %d overdue flag is %d",p->pid,p->policy,p->is_overdue);
 			#endif
 			array=rq->s_active;
 
@@ -918,7 +918,6 @@ void scheduler_tick(int user_tick, int system)
 		// decrement remaining time
 		//if zero
 		
-		printk("tick in short \n");
 		
 		if(!--p->remaining_time){
 		
@@ -1019,7 +1018,14 @@ pick_next_task:
 
 // fun starts here
 
-	if(rq->active->nr_active || rq->expired->nr_active){//sched other present
+
+	if(rq->s_active->nr_active){// regular short present
+		array = rq->s_active;
+		idx = sched_find_first_bit(array->bitmap);
+		queue = array->queue + idx;
+		
+	}	
+	else if(rq->active->nr_active || rq->expired->nr_active){//sched other present
 		array = rq->active;
 		if (unlikely(!array->nr_active)) {
 			/*
@@ -1033,12 +1039,8 @@ pick_next_task:
 		idx = sched_find_first_bit(array->bitmap);
 		queue = array->queue + idx;		
 		
-	}else if(rq->s_active->nr_active){// regular short present
-		array = rq->s_active;
-		idx = sched_find_first_bit(array->bitmap);
-		queue = array->queue + idx;
-		
-	}else if(rq->s_overdue->nr_active){ // overdue short present
+	}
+	else if(rq->s_overdue->nr_active){ // overdue short present
 		array = rq->s_overdue;
 		queue = array->queue;		
 	} else{//PANIC mishandled counting processes
@@ -1337,13 +1339,13 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	runqueue_t *rq;
 	task_t *p;
 
-	if (!param || pid < 0){
+	if (!param || pid < 0)
 		goto out_nounlock;
-	}
+
 	retval = -EFAULT;
-	if (copy_from_user(&lp, param, sizeof(struct sched_param))){
+	if (copy_from_user(&lp, param, sizeof(struct sched_param)))
 		goto out_nounlock;
-	}
+
 	/*
 	 * We play safe to avoid deadlocks.
 	 */
@@ -1352,44 +1354,60 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p = find_process_by_pid(pid);
 
 	retval = -ESRCH;
-	if (!p){
+	if (!p)
 		goto out_unlock_tasklist;
-	}
 
 	/*
 	 * To be able to change p->policy safely, the apropriate
 	 * runqueue lock must be held.
 	 */
 	rq = task_rq_lock(p, &flags);
-	
-	
-	//changing short's remaining time or changing a non short into short.
-	retval = -EINVAL;
+
+	////////////changing here
+	if(p->policy == SCHED_SHORT){//already short and wanna change params
+		if(lp.requested_time < 1 || lp.requested_time > 3000 )
+			retval = -EINVAL;
+			goto out_unlock;
+		p->requested_time = (lp.requested_time*HZ/1000);
+		retval = 0;
+		goto out_unlock;
+	}
+		
 	if(policy == SCHED_SHORT){
 		if(lp.requested_time < 1 || lp.requested_time > 3000 || lp.requested_cycles <0 || lp.requested_cycles >5){
+			retval = -EINVAL;
 			goto out_unlock;
 		}
-		p->requested_time = (lp.requested_time*HZ/1000);
-		p->requested_cycles =  lp.requested_cycles;
-	}
-	
-	if(p->policy == SCHED_SHORT){ //already short and wanna change params
-
-		if(lp.requested_time < 1 || lp.requested_time > 3000 )
+		if (policy < 0)
+			policy = p->policy;
+		if ((current->euid != p->euid) && (current->euid != p->uid) &&
+			!capable(CAP_SYS_NICE)){
+			retval = -EPERM;
 			goto out_unlock;
-		p->requested_time = lp.requested_time;
+		}
+		array = p->array;
+		if (array)
+			deactivate_task(p, task_rq(p));
+		retval = 0;
+		p->policy = policy;
+		p->prio = p->static_prio;
+		p->requested_time = (lp.requested_time*HZ/1000);
+		p->requested_cycles =  lp.requested_cycles;	
+			
+		set_need_resched();
+		if (array)
+			activate_task(p, task_rq(p));
+		
+		goto out_unlock;
 	}
-	
 	
 	if (policy < 0)
 		policy = p->policy;
 	else {
 		retval = -EINVAL;
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
-				policy != SCHED_OTHER && policy != SCHED_SHORT){
-
+				policy != SCHED_OTHER)
 			goto out_unlock;
-		}
 	}
 
 	/*
@@ -1397,15 +1415,10 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 * 1..MAX_USER_RT_PRIO-1, valid priority for SCHED_OTHER is 0.
 	 */
 	retval = -EINVAL;
-	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1){
+	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1)
 		goto out_unlock;
-	}
-		
-	if ((policy == SCHED_OTHER) != (lp.sched_priority == 0)){	
-	
+	if ((policy == SCHED_OTHER) != (lp.sched_priority == 0))
 		goto out_unlock;
-	}
-
 
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
@@ -1418,7 +1431,6 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
-
 	retval = 0;
 	p->policy = policy;
 	p->rt_priority = lp.sched_priority;
@@ -1426,18 +1438,18 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
 	else
 		p->prio = p->static_prio;
-	if (array){
+	if (array)
 		activate_task(p, task_rq(p));
-		set_tsk_need_resched(current);
-	}
+
 out_unlock:
 	task_rq_unlock(rq, &flags);
 out_unlock_tasklist:
 	read_unlock_irq(&tasklist_lock);
 
 out_nounlock:
-
 	return retval;
+		
+
 }
 
 //////////////
@@ -1449,12 +1461,12 @@ asmlinkage long sys_sched_setscheduler(pid_t pid, int policy,
 	printk("pid is %d policy is %d \n",pid,policy);
 	task_t *p;
 	if(pid<0){
-		printk("bad pid returning einval \n");
+		//printk("bad pid returning einval \n");
 		return -EINVAL;
 	}
 	p = find_process_by_pid(pid);
 	if(p->policy==SCHED_SHORT){
-		printk("cant change SHORt returning EPERM\n");
+		//printk("cant change SHORt returning EPERM\n");
 		return -EPERM;
 	}
 	return setscheduler(pid, policy, param);

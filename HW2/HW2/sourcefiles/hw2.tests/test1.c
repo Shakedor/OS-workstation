@@ -57,6 +57,7 @@ int test1() {
     int counter = 0;
         
     if (child != 0) {
+		printf("IM DAD 1 \n");
         smem = (data_t*)make_shared(sizeof(data_t), 1);
         smem->curr = 0;
         
@@ -79,7 +80,7 @@ int test1() {
         smem->arr[smem->curr] = FATHER+0; // init value
         
         ASSERT_ZERO(sched_setscheduler(child, SCHED_SHORT, &params)); // now we lost control until child will be overdue
-        
+        printf("gained controll dad 1 \n");
         // child got into overdue. we gained control again. we should still be short here.
         smem->arr[++smem->curr] = FATHER+1;
         
@@ -138,19 +139,22 @@ int test1() {
         return 1;
         
     } else {
+		printf("IM CHILD 1 \n");
         pid_t mypid = getpid();
         ASSERT_POSITIVE(mypid);
-        
+        printf("ctock0\n");
         while (is_SHORT(mypid) != 1) ;
-        
+        printf("ctock1\n");
         data_t* smem = (data_t*)make_shared(sizeof(data_t), 0);
         
         smem->arr[++smem->curr] = SON+0; // this is the first SHORT time slice
         
         while (is_SHORT(mypid)) ;
+		printf("ctock2\n");
         smem->arr[++smem->curr] = SON+(1*10)+OVERDUE_PERIOD; // got into first overdue period
         ASSERT_EQUALS(remaining_cooloffs(mypid), cooloffs-1);
-        
+        printf("ctock3\n");
+
         for (i = 1; i <= cooloffs; ++i) {
             while (!is_SHORT(mypid)) ;
             smem->arr[++smem->curr] = SON+(i*10); // got out of overdue period
