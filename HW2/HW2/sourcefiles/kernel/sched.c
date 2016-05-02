@@ -923,6 +923,7 @@ void scheduler_tick(int user_tick, int system)
 		
 			//check wether its overdue or not
 			if(!p->is_overdue){
+				printk("process %d is becoming overdue, before it had %d \n",p->pid,p->remaining_cycles);
 			// if regular short reset remaining time, decrement cycles 
 			//turn on is overdue and remove from short array and add to overdue array
 				p->remaining_time=p->requested_time;
@@ -1394,8 +1395,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		retval = 0;
 		p->policy = policy;
 		p->prio = p->static_prio;
-		p->requested_time = (lp.requested_time*HZ/1000);
-		p->requested_cycles =  lp.requested_cycles;	
+		p->remaining_time = p->requested_time = (lp.requested_time*HZ/1000);
+		p->remaining_cycles = p->requested_cycles =  lp.requested_cycles;	
+		printk("new short with %d cycles",p->requested_cycles);
 			
 		set_need_resched();
 		if (array)
