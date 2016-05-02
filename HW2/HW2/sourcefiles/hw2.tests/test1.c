@@ -149,7 +149,9 @@ int test1() {
         
         smem->arr[++smem->curr] = SON+0; // this is the first SHORT time slice
         
-        while (is_SHORT(mypid)) ;
+        while (is_SHORT(mypid)){
+			printf("in 2 child wait, remaining time is %d \n",remaining_time(mypid));
+		} ;
 		printf("ctock2\n");
         smem->arr[++smem->curr] = SON+(1*10)+OVERDUE_PERIOD; // got into first overdue period
         ASSERT_EQUALS(remaining_cooloffs(mypid), cooloffs-1);

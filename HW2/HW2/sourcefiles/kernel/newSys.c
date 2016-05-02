@@ -38,5 +38,8 @@ asmlinkage int sys_remaining_cooloffs(int pid) {
 	if (p->is_overdue != 1 && p->policy != SCHED_SHORT) {
 		return -EINVAL;
 	}
+	if(p->remaining_cycles == -1){
+		return 0;
+	}
 	return p->remaining_cycles;
 }

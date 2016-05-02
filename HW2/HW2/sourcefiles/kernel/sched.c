@@ -19,8 +19,8 @@
  ///////
  // DEBUG flags
  
- #define SetSchedDEBUG
- #define DEBUG_activate
+ //#define SetSchedDEBUG
+ //#define DEBUG_activate
  
 #include <linux/mm.h>
 #include <linux/nmi.h>
@@ -919,7 +919,7 @@ void scheduler_tick(int user_tick, int system)
 		//if zero
 		
 		
-		if(!--p->remaining_time){
+		if((--p->remaining_time)<=0){
 		
 			//check wether its overdue or not
 			if(!p->is_overdue){
