@@ -153,16 +153,14 @@ enum taskType{
 	ERR
 };
 
-int getSwitchTotal();
-int getSwitchIndex();
-struct switch_info* getSwitchInfo();
+int getSwitchTotal(void);
+int getSwitchIndex(void);
+struct switch_info* getSwitchInfo(void);
 /************************* HW2 monitor *********************/
 
-struct task_struct {    
-	/* HW2 monitor */
-	enum switchReason reason;
-	/* HW2 monitor */
-};
+   
+
+
 
 //////END addition
 
@@ -525,6 +523,10 @@ struct task_struct {
 	int remaining_time;
 	int remaining_cycles;
 	int is_overdue;
+	
+	/* HW2 monitor */
+	enum switchReason reason;
+	/* HW2 monitor */
 	
 };
 

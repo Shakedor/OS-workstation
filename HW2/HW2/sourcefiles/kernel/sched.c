@@ -1092,6 +1092,9 @@ pick_next_task:
 
 switch_tasks:
 
+	prefetch(next);
+	clear_tsk_need_resched(prev);
+	
 	/* HW2 monitor */
 	int csIndex = rq->switchIndex >= SCHED_SAVES_LIMIT ? 0 : rq->switchIndex;
 	if (prev->reason == CREATED ||	prev->reason == ENDED) {
@@ -1110,9 +1113,6 @@ switch_tasks:
 		(rq->switchCounter)++;
 	}
 	/* HW2 monitor */
-
-	prefetch(next);
-	clear_tsk_need_resched(prev);
 
 	if (likely(prev != next)) {
 		rq->nr_switches++;
@@ -1134,19 +1134,19 @@ switch_tasks:
 
 
 /* HW2 monitor */
-int getSwitchTotal() {
+int getSwitchTotal(void) {
 	runqueue_t *rq = this_rq_lock();
 	int tmp = rq->switchTotal;
 	rq_unlock(rq);
 	return tmp;
 }
-int getSwitchIndex() {
+int getSwitchIndex(void) {
 	runqueue_t *rq = this_rq_lock();
 	int tmp = rq->switchIndex;
 	rq_unlock(rq);
 	return tmp;
 }
-struct switch_info* getSwitchInfo() {
+struct switch_info* getSwitchInfo(void) {
 	runqueue_t *rq = this_rq_lock();
 	struct switch_info* tmp = rq->switchInfo;
 	rq_unlock(rq);

@@ -80,7 +80,7 @@ int main(){
 		int cooloffs = 5;
 		int requested_time = 25;
 		int param[3] = {0, requested_time, cooloffs};
-		sched_setscheduler(pid, 5, param);
+		sched_setscheduler(pid, 5, &param);
 	}
 	int retval;
 	wait(&retval);
