@@ -1059,7 +1059,7 @@ pick_next_task:
 
 
 	if(rq->s_active->nr_active){// regular short present
-		//printk("scheduleing a short regular current is %d\n",current->pid);
+		printk("scheduleing a short regular current is %d",current->pid);
 		array = rq->s_active;
 		idx = sched_find_first_bit(array->bitmap);
 		queue = array->queue + idx;
@@ -1081,7 +1081,7 @@ pick_next_task:
 		
 	}
 	else if(rq->s_overdue->nr_active){ // overdue short present
-		//printk("scheduleing a overdue regular current is %d\n",current->pid);
+		printk("scheduleing a overdue regular current is %d",current->pid);
 		array = rq->s_overdue;
 		queue = array->queue;		
 	} else{//PANIC mishandled counting processes
