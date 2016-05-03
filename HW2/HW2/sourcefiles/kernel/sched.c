@@ -1010,8 +1010,20 @@ int get_task_type(task_t* p){
 
 ///////////////
 // change pick next to fit HW specifications
-
 /////////////////
+//// function which check if there is any rt process
+/////////////////
+
+int rqHasRealtime(runqueue_t *this_rq){
+	prio_array_t *array;
+	array = this_rq->active;
+	int idx = sched_find_first_bit(array->bitmap);
+	if (idx < 100) {
+		return 1;
+	}
+	return 0;
+}
+
 /*
  * 'schedule()' is the main scheduler function.
  */
@@ -1064,8 +1076,12 @@ pick_next_task:
 	#ifdef DEBUG_schedule_main
 	int print_flag=0;
 	#endif
-
-	if(rq->s_active->nr_active){// regular short present
+	if(rq->active->nr_active && rqHasRealtime(rq)) {//real time process
+		array = rq->active;
+		idx = sched_find_first_bit(array->bitmap);
+		queue = array->queue + idx;
+	}
+	else if(rq->s_active->nr_active){// regular short present
 		#ifdef DEBUG_schedule_main
 		print_flag=1;
 		printk("scheduleing a short regular current is %d",current->pid);
@@ -1476,6 +1492,11 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	rq = task_rq_lock(p, &flags);
 
 	////////////changing here
+	if(policy== SCHED_SHORT && p->policy!=SCHED_OTHER){
+		retval=-EPERM;
+		goto out_unlock;
+	}
+	
 	printk("starting to change is setsched, policy is %d, p->policy is\n",policy,p->policy);
 	if(p->policy == SCHED_SHORT){//already short and wanna change params
 		if(lp.requested_time < 1 || lp.requested_time > 3000 ){

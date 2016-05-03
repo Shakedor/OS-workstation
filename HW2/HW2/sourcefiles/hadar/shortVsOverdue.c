@@ -57,7 +57,7 @@ bool shortVsOverdue() {
 		printf("4\n"); // son is asleep so father should run
 		busywait(130); //father is still overdue (has 0 cooloff) while SHORT son wakes up here
 		printf("6\n"); //overdue is FIFO and father became overdue first
-		sleepValue.tv_nsec = 120 * NANO_SECOND_MULTIPLIER;
+		sleepValue.tv_nsec = 450 * NANO_SECOND_MULTIPLIER;
 		nanosleep(&sleepValue,NULL); //father sleeps for 120ms
 		printf("9\n"); //son has died, father should run
 	}

@@ -46,7 +46,7 @@ bool otherVsShortAndOverdue() {
         sp.num_cooloff = 1; 
 		sched_setscheduler(pid, SCHED_SHORT, (struct sched_param *)&sp);
 		printf("2\n");
-		busywait(20); // father runs for at least 10ms, should be enough time for son to wake up and take his place
+		busywait(25); // father runs for at least 10ms, should be enough time for son to wake up and take his place
 		printf("4\n");
 		busywait(300); // this is probably large enough for father to change to expired but he still needs to run since son is overdue
 		printf("5\n");
@@ -59,7 +59,7 @@ bool otherVsShortAndOverdue() {
         // Child, a SHORT.
         while(sched_getscheduler(getpid()) != SCHED_SHORT) {}
 		printf("1\n"); //son is SHORT and should run first, before OTHER father
-		usleep(10000); //puts child to sleep for 10ms, should be enough time to context_switch to father
+		usleep(20000); //puts child to sleep for 10ms, should be enough time to context_switch to father
 		printf("3\n");
 		busywait(110); // son runs for at least 100ms, should be enough time for son to become overdue and father needs to take his place
 		printf("6\n");

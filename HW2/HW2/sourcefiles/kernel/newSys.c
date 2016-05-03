@@ -27,12 +27,15 @@ asmlinkage int sys_remaining_time(int pid) {
 	if(p == NULL) {
 		return -EINVAL;
 	}
-	if (p->is_overdue != 1 && p->policy != SCHED_SHORT) {
+	if (p->policy != SCHED_SHORT) {
 		return -EINVAL;
 	}
 	#ifdef DEBUG_SYS
 	printk("remaining time is %d, requested is %d, NCreq is %d\n",p->remaining_time,p->requested_time,p->NCrequested_time);
 	#endif
+	if(p->remaining_cycles <= -1){
+		return 0;
+	}
 	return (p->remaining_time*1000)/HZ;
 }
 
@@ -41,10 +44,10 @@ asmlinkage int sys_remaining_cooloffs(int pid) {
 	if(p == NULL) {
 		return -EINVAL;
 	}
-	if (p->is_overdue != 1 && p->policy != SCHED_SHORT) {
+	if (p->policy != SCHED_SHORT) {
 		return -EINVAL;
 	}
-	if(p->remaining_cycles == -1){
+	if(p->remaining_cycles <=  -1){
 		return 0;
 	}
 	return p->remaining_cycles;

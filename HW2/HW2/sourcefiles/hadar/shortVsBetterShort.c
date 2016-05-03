@@ -49,7 +49,7 @@ bool shortVsBetterShort() {
 		nice(1); //father becomes slightly worse than son
 		busywait(120); //son should wake up by now, he is a better SHORT
 		printf("4\n"); //son is overdue so father should run
-		usleep(520000);// father sleeps for 500ms
+		usleep(600000);// father sleeps for 500ms
 		printf("7\n"); //son is dead so father should run	
 	}
 	else {
