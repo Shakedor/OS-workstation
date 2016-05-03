@@ -21,7 +21,9 @@
  
  //#define SetSchedDEBUG
  //#define DEBUG_activate
- #define DEBUG_GETPARAM
+ //#define DEBUG_GETPARAM
+ //#define DEBUG_tick
+ //#define DEBUG_schedule_main
  
 #include <linux/mm.h>
 #include <linux/nmi.h>
@@ -500,17 +502,7 @@ static inline void enqueue_short_task(struct task_struct *p, prio_array_t *array
 {
     /* this function will only be used in wake_up_forked_task to put child SHORT process first in the short_queue so it will run first */
     int fixed_prio;
-    if (p->policy == SCHED_SHORT) {
-        if (p->is_overdue == 1) {
-            fixed_prio = p->static_prio;    
-        }
-        else {
-            fixed_prio = p->prio - MAX_USER_RT_PRIO;
-        }
-    }
-    else {
-        fixed_prio=p->prio;
-    }
+	fixed_prio=p->static_prio;
     list_add(&p->run_list, array->queue + fixed_prio);
     __set_bit(fixed_prio, array->bitmap);
     array->nr_active++;
@@ -965,6 +957,9 @@ void scheduler_tick(int user_tick, int system)
 				// if temp overdue turn off overdue flag 
 				//and remove from overdue and return to reg short array
 				if(p->remaining_cycles >=0 ){ // if temp overdue
+				#ifdef DEBUG_tick
+				printk("process %d was overdue is becoming regular, before it had %d \n",p->pid,p->remaining_cycles);
+				#endif
 					p->is_overdue=0;
 					dequeue_task(p,rq->s_overdue);	
 					enqueue_task(p,rq->s_active);
@@ -978,6 +973,9 @@ void scheduler_tick(int user_tick, int system)
 				}
 				// if perma overdue deque and enque from overdue array
 				else{
+				#ifdef DEBUG_tick
+				printk("process %d was overdue is going back to overdue again , before it had %d \n",p->pid,p->remaining_cycles);
+				#endif
 					dequeue_task(p,rq->s_overdue);	
 					enqueue_task(p,rq->s_overdue);	
 					set_tsk_need_resched(p);
@@ -1063,10 +1061,13 @@ pick_next_task:
 	}
 
 // fun starts here
-
+	#ifdef DEBUG_schedule_main
+	int print_flag=0;
+	#endif
 
 	if(rq->s_active->nr_active){// regular short present
 		#ifdef DEBUG_schedule_main
+		print_flag=1;
 		printk("scheduleing a short regular current is %d",current->pid);
 		#endif
 		array = rq->s_active;
@@ -1091,6 +1092,7 @@ pick_next_task:
 	}
 	else if(rq->s_overdue->nr_active){ // overdue short present
 		#ifdef DEBUG_schedule_main
+		print_flag=1;
 		printk("scheduleing a overdue regular current is %d",current->pid);
 		#endif
 		array = rq->s_overdue;
@@ -1100,7 +1102,21 @@ pick_next_task:
 	}
 
 	next = list_entry(queue->next, task_t, run_list);
+	
+	#ifdef DEBUG_schedule_main
+	if(print_flag){
+		printk("	next is %d \n",next->pid);
+	}
+	#endif
+	
+	#ifdef DEBUG_schedule_main
+	if(prev->policy==SCHED_SHORT || next->policy==SCHED_SHORT){
+		printk("active: %p expired: %p\n s_active: %p s_overdue: %p\n",(void*)rq->active,(void*)rq->expired,(void*)rq->s_active,(void*)rq->s_overdue);
+		printk("prev is in %p, next is in %p \n",(void*)prev->array,(void*)next->array);
 
+	}
+	#endif
+	
 switch_tasks:
 
 	prefetch(next);
@@ -1141,6 +1157,8 @@ switch_tasks:
 	reacquire_kernel_lock(current);
 	if (need_resched())
 		goto need_resched;
+	
+
 }
 
 
@@ -1615,7 +1633,7 @@ asmlinkage long sys_sched_getparam(pid_t pid, struct sched_param *param)
 		goto out_unlock;
 	
 	#ifdef DEBUG_GETPARAM
-	printk("!translate! in get param: remaining time is %d, requested is %d, NCreq is %d\n",(p->remaining_time*1000)/HZ,(p->requested_time*1000)/HZ,(p->NCrequested_time*1000)/HZ);
+	printk("!translate! in get param: remaining time is %d, requested is %d, NCreq is %d\n",(p->remaining_time*1000)/HZ,p->requested_time,p->NCrequested_time);
 	#endif
 	lp.sched_priority = p->rt_priority;
 	lp.requested_time = p->NCrequested_time;

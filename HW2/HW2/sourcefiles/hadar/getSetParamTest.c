@@ -74,6 +74,7 @@ bool getSetParamTest() {
 		ASSERT_TEST(remaining_time(getpid()) <= 300); //father has new requested time of 300, son should change here as well
 		exit(0);
 	}
+
 	waitpid(pid, &status, 0);
 	return true;
 	
