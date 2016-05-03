@@ -21,8 +21,6 @@
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
 
-#include <linux/progblock.h>
-
 extern void sem_exit (void);
 extern struct task_struct *child_reaper;
 
@@ -38,8 +36,6 @@ static void release_task(struct task_struct * p)
 	atomic_dec(&p->user->processes);
 	free_uid(p->user);
 	unhash_process(p);
-
-	progblock_free(&p->self_list);     //free all the allocated memory
 
 	release_thread(p);
 	current->cmin_flt += p->min_flt + p->cmin_flt;
@@ -513,6 +509,11 @@ fake_volatile:
 #endif
 		current->tux_exit();
 	}
+	
+	/* HW2 monitor */
+	current->reason = ENDED;
+	/* HW2 monitor */
+	
 	__exit_mm(tsk);
 
 	lock_kernel();
@@ -534,15 +535,6 @@ fake_volatile:
 	exit_notify();
 	schedule();
 	BUG();
-
-//////////////////
-//////Test Addition
-//////////////////
-	 /* HW2 monitor */
-	current->reason = ENDED;
-	/* HW2 monitor */
-///////END Addition
-
 /*
  * In order to get rid of the "volatile function does return" message
  * I did this little loop that confuses gcc to think do_exit really

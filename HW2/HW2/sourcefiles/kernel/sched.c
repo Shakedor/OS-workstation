@@ -153,7 +153,7 @@ struct runqueue {
 	list_t migration_queue;
 //////////////
 //////////Test Addition
-	/* HW2 monitor */
+    /* HW2 monitor */
 	struct switch_info switchInfo[SCHED_SAVES_LIMIT];
 	int switchCounter, switchIndex, switchTotal;
     /* HW2 monitor */
@@ -478,7 +478,7 @@ repeat_lock_task:
 		 * If sync is set, a resched_task() is a NOOP
 		 */
 		if (p->prio < rq->curr->prio)
-			/* HW2 monitor */
+            /* HW2 monitor */
             current->reason = HIGHER_PRIORITY;
             /* HW2 monitor */
 			resched_task(rq->curr);
@@ -895,6 +895,8 @@ void scheduler_tick(int user_tick, int system)
 			/* put it at the end of the queue: */
 			dequeue_task(p, rq->active);
 			enqueue_task(p, rq->active);
+			
+
 		}
 		goto out;
 	}
@@ -915,6 +917,10 @@ void scheduler_tick(int user_tick, int system)
 			p->prio = effective_prio(p);
 			p->first_time_slice = 0;
 			p->time_slice = TASK_TIMESLICE(p);
+			
+			/* HW2 monitor */
+			current->reason = TIMESLICE_ENDED;
+			/* HW2 monitor */
 
 			if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
 				if (!rq->expired_timestamp)
@@ -928,15 +934,14 @@ void scheduler_tick(int user_tick, int system)
 		// decrement remaining time
 		//if zero
 		
-		/* HW2 monitor */
-		current->reason = TIMESLICE_ENDED;
-		/* HW2 monitor */
 
 		if((--p->remaining_time)<=0){
 		
 			//check wether its overdue or not
 			if(!p->is_overdue){
+				#ifdef DEBUG_tick
 				printk("process %d is becoming overdue, before it had %d \n",p->pid,p->remaining_cycles);
+				#endif
 			// if regular short reset remaining time, decrement cycles 
 			//turn on is overdue and remove from short array and add to overdue array
 				p->remaining_time=p->requested_time;
@@ -1059,7 +1064,9 @@ pick_next_task:
 
 
 	if(rq->s_active->nr_active){// regular short present
+		#ifdef DEBUG_schedule_main
 		printk("scheduleing a short regular current is %d",current->pid);
+		#endif
 		array = rq->s_active;
 		idx = sched_find_first_bit(array->bitmap);
 		queue = array->queue + idx;
@@ -1081,7 +1088,9 @@ pick_next_task:
 		
 	}
 	else if(rq->s_overdue->nr_active){ // overdue short present
+		#ifdef DEBUG_schedule_main
 		printk("scheduleing a overdue regular current is %d",current->pid);
+		#endif
 		array = rq->s_overdue;
 		queue = array->queue;		
 	} else{//PANIC mishandled counting processes

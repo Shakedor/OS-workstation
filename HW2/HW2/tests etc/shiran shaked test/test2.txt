@@ -1,0 +1,226 @@
+#include  <sys/types.h>
+#include  <sys/ipc.h>
+#include  <sys/shm.h>
+#include  <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include "shortSyscalls.h"
+#include "test_utilities.h"
+
+#define SERVER_STR(is_server) ((is_server) ? "server" : "client")
+#define SCHED_SHORT 5
+#define FATHER          10000
+#define SON             20000
+#define GRAND_SON       30000
+#define OVERDUE_PERIOD  1000
+#define max(a,b) ((a)>(b) ? (a) : (b))
+
+typedef struct sched_param {
+    int sched_priority;
+    int requested_time;
+    int importance;
+} sched_param_t;
+
+void* make_shared(size_t size, int is_server) {
+    int       shm_id;
+    key_t     mem_key;
+    void       *shm_ptr;
+
+    mem_key = ftok("/tmp", 'b');
+    shm_id = shmget(mem_key, size, ((is_server ? IPC_CREAT : 0) | 0666));
+    if (shm_id < 0) {
+         printf("*** shmget error (%s) ***\n", SERVER_STR(is_server));
+         exit(1);
+    }
+
+    shm_ptr = shmat(shm_id, NULL, 0);  /* attach */
+    if ((int) shm_ptr == -1) {
+         printf("*** shmat error (%s) ***\n", SERVER_STR(is_server));
+         exit(1);
+    }
+    return shm_ptr;
+}
+
+#define N 40
+typedef struct data {
+    size_t curr;
+    int arr[N];
+} data_t;
+
+int test1() {
+	pid_t father = getpid();
+	pid_t son, son2, grandson, grandson2;
+	ASSERT_EQUALS(is_SHORT(father), -1); // this single process it not short or overdue
+	ASSERT_EQUALS(remaining_time(father), -1);// this single process it not short or overdue
+	ASSERT_EQUALS(remaining_cooloffs(father), -1);// this single process it not short or overdue 
+    int child = fork();
+    int i;
+    data_t* smem;
+    int cooloffs = 5;
+    sched_param_t params = {50, 3000, cooloffs};
+    int status;
+    int counter = 0;
+        
+    if (child != 0) {
+        smem = (data_t*)make_shared(sizeof(data_t), 1);
+        smem->curr = 0;
+        
+        father = getpid();
+        ASSERT_POSITIVE(father);
+		
+		 waitpid(son, &status, 0);
+		 
+		ASSERT_ZERO(sched_setscheduler(son, SCHED_SHORT, &params)); //change father to short process
+        nice(1); // be nicer than child
+        
+		int child = fork();
+		if (child==0){
+			son2 = getpid();
+			struct sched_param param5;
+			ASSERT_ZERO(sched_getparam(son2, &param5));
+			int req1 = param5.requested_time;
+			ASSERT_NEQ(req1,3000);
+			param5.requested_time=3000;
+			sched_setparam(son2, &param5);
+			
+			while(is_SHORT(son2));
+			ASSERT_ZERO(sched_getparam(son2, &param5));
+			ASSERT_NEQ(param5.requested_time,3000);
+			while(!is_SHORT(son2));
+			ASSERT_ZERO(sched_getparam(son2, &param5));
+			ASSERT_EQ(param5.requested_time,3000);
+			while(is_SHORT(son2));
+			
+			ASSERT_EQ(sched_setscheduler(son2, 0, &param5),-1);
+			exit(0);
+		}
+		else{
+			nice(10);
+			sched_yield();
+			waitpid(son2, &status, 0);
+			ASSERT_EQ(sched_setscheduler(father, 0, &params),-1);
+			
+		}
+
+		
+		
+        // use `gcc -DVERBOSE ...` in order to print the array state
+        if (IS_VERBOSE()) {
+            for (i = 0; i <= 4; i++) {
+                printf("%d:\t%d\n", i, smem->arr[i]);
+            }
+        }
+        
+         // check array
+         ASSERT_EQUALS(smem->arr[0], SON+0);
+         ASSERT_EQUALS(smem->arr[1], GRAND_SON+0);
+         ASSERT_EQUALS(smem->arr[2], GRAND_SON+1+OVERDUE_PERIOD);
+		 ASSERT_EQUALS(smem->arr[3], GRAND_SON+2);
+		 ASSERT_EQUALS(smem->arr[4], SON+3);
+        
+    } else {		
+		son = getpid();
+        ASSERT_POSITIVE(son);
+		
+		data_t* smem = (data_t*)make_shared(sizeof(data_t), 0);
+		
+		smem->arr[smem->curr] = SON+0; // init value        
+		
+		ASSERT_ZERO(sched_setscheduler(son, SCHED_SHORT, &params));
+        ASSERT_EQUALS(sched_setscheduler(son, SCHED_SHORT, &params), -1);
+        ASSERT_EQUALS(errno, EPERM);
+        ASSERT_EQUALS(is_SHORT(son), 1);
+        ASSERT_EQUALS(remaining_cooloffs(son), cooloffs);
+		
+		int grandchild = fork();
+				
+		if (grandchild != 0) {
+			struct sched_param param2;
+			ASSERT_ZERO(sched_getparam(son, &param2));
+			ASSERT_EQUALS(param2.sched_priority,50);
+			ASSERT_EQUALS(param2.requested_time,1500);
+			ASSERT_EQUALS(param2.importance,2);
+			nice(1); // the grandchild will run from on
+			
+			
+			wait();
+			
+			
+			smem->arr[++smem->curr] = SON+3;
+			param2.importance=5;
+			ASSERT_EQUALS(sched_setparam(son, &param2),-1);
+			ASSERT_EQUALS(errno, EINVAL);
+			
+			int grandchild2 = fork();
+			if(grandchild2==0){
+				grandson2 = getpid();
+				ASSERT_POSITIVE(grandson2);
+				struct sched_param param4;
+				ASSERT_ZERO(sched_getparam(grandson2, &param4));
+				ASSERT_EQUALS(importance(grandson2),1);
+
+				while(is_SHORT(grandson2)){
+					
+				};
+				 
+				param4.sched_priority = 20;
+				param4.requested_time = 3000;
+				param4.importance = 5;
+				
+				ASSERT_ZERO( sched_setscheduler(grandson2, SCHED_SHORT, &param4));
+				ASSERT_EQUALS(remaining_cooloffs(grandson2), 5);
+				ASSERT_EQUALS(is_SHORT(grandson2),1);
+				exit (0);
+			}
+			else{
+				ASSERT_ZERO(sched_getparam(son, &param2));
+				ASSERT_EQUALS(importance(son),1);
+				wait();
+				
+				exit (0);
+			}
+		}
+		else{
+			grandson = getpid();
+			ASSERT_POSITIVE(grandson);
+		
+			data_t* smem = (data_t*)make_shared(sizeof(data_t), 0);
+        
+			smem->arr[++smem->curr] = GRAND_SON+0;
+			
+			struct sched_param param3;
+			ASSERT_ZERO( sched_getparam(grandson, &param3));
+			ASSERT_EQUALS(param3.sched_priority,50);
+			ASSERT_EQUALS(param3.requested_time,1500);
+			ASSERT_EQUALS(param3.importance,3);
+			while (is_SHORT(grandson)) ; //wait to be overdue and when it is overdue go to SON
+			
+			
+			param3.importance=0;
+			ASSERT_ZERO(sched_setparam(grandson, &param3));
+			ASSERT_EQUALS(remaining_cooloffs(grandson), 3);
+			while (is_SHORT(grandson)); //wait to be overdue
+			smem->arr[++smem->curr] = GRAND_SON+1+OVERDUE_PERIOD;
+			while (!is_SHORT(grandson));
+			ASSERT_EQUALS(remaining_cooloffs(grandson), 0);
+			smem->arr[++smem->curr] = GRAND_SON+2;
+			param3.importance=5;
+			ASSERT_EQUALS(sched_setparam(grandson, &param3),-1);
+			ASSERT_EQUALS(errno, EINVAL);
+			exit (0);
+		}
+		
+        
+        exit(0);
+    }
+
+    return 1;
+}
+
+int main(int argc, char** argv) {
+    SET_VERBOSE_BY_ARGS(argc, argv, 1);
+    
+    RUN_TEST(test1);
+    
+    return 0;
+}

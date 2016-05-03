@@ -109,7 +109,7 @@ void __init sched_init(void)
 		/* HW2 monitor */
 	}
 }
-/* HW2 monitor */
+
 asmlinkage int sys_get_scheduling_statistic(struct switch_info *user_switch_info){
 	if (!user_switch_info) { return -EINVAL; }
 	if (getSwitchTotal() >= SCHED_SAVES_LIMIT) {
@@ -133,4 +133,3 @@ asmlinkage int sys_flush_scheduling_statistic(){
 	rq_unlock(rq);
 	return 0;
 }
-/* HW2 monitor */

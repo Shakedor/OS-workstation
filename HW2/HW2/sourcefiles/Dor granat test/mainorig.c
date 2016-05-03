@@ -17,6 +17,7 @@
 #include <sys/wait.h>
 #include <asm/errno.h>
 #include <sys/resource.h>
+#include "HW2.h"
 
 #define BLACK   "\033[30m"      /* Black */
 #define RED     "\033[31m"      /* Red */
@@ -34,6 +35,7 @@
 #define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
 #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
+
 
 void print_log(int PID){
 	switch_t log[SCHED_SAVES_LIMIT];
@@ -67,9 +69,10 @@ void print_log(int PID){
 	}
 }
 
-int main(){
+int valentin(){
 	flush_scheduling_statistic();
 	int pid = fork();
+	int retval;
 	if(pid == 0){
 		for(int i=0; i<20; ++i){
 			for(int j=0; j<9000000; ++j);
@@ -80,10 +83,131 @@ int main(){
 		int cooloffs = 5;
 		int requested_time = 25;
 		int param[3] = {0, requested_time, cooloffs};
-		sched_setscheduler(pid, 5, &param);
+		sched_setscheduler(pid, 5, param);
 	}
-	int retval;
+
 	wait(&retval);
+	printf("Valentin's test:\n");
 	print_log(pid);
 	return 0;
 }
+
+int forkShort() {
+	flush_scheduling_statistic();
+	int pid = getpid();
+	int retval;
+	int param[3] = {0, 25, 5};
+	sched_setscheduler(pid, 5, param);
+	int child = fork();
+	if(!child) {
+		for(int i=0; i<20; ++i){
+			for(int j=0; j<9000000; ++j);
+			++i;
+		}
+		_exit(EXIT_SUCCESS);
+	} else {
+		for(int j=0; j<9000000; ++j);
+	}
+	wait(&retval);
+	printf("Fork SHORT:\n");
+	print_log(pid);
+	return 0;
+}
+
+int forkOverdue() {
+	flush_scheduling_statistic();
+	int pid = getpid();
+	int retval;
+	int param[3] = {0, 25, 5};
+	sched_setscheduler(pid, 5, param);
+	while(is_SHORT(pid));
+	int child = fork();
+	if(!child) {
+		for(int i=0; i<20; ++i){
+			for(int j=0; j<9000000; ++j);
+			++i;
+		}
+		_exit(EXIT_SUCCESS);
+	} else {
+		for(int j=0; j<9000000; ++j);
+	}
+	wait(&retval);
+	printf("Fork OVERDUE:\n");
+	print_log(pid);
+	return 0;
+}
+
+int changeParam() {
+	flush_scheduling_statistic();
+	int pid = getpid();
+	int param[3] = {0, 20, 5};
+
+	sched_setscheduler(pid, 5, param);
+
+	param[1] = 50;
+	while(is_SHORT(pid));
+	sched_setparam(pid, param);
+	while(!is_SHORT(pid));
+	while(is_SHORT(pid));
+	while(!is_SHORT(pid));
+	param[1] = 100;
+	sched_setparam(pid, param);
+	while(is_SHORT(pid));
+	while(!is_SHORT(pid));
+	while(is_SHORT(pid));
+	printf("Change Param:\n");
+	print_log(pid);
+	return 0;
+}
+
+int changeNice() {
+	flush_scheduling_statistic();
+	int param[3] = {0, 100, 5};
+	int retval;
+	int pid = getpid();
+	int child = fork();
+	if(!child) {
+		for(int i=0; i<40; ++i){
+			for(int j=0; j<9000000; ++j);
+			++i;
+		}
+		_exit(EXIT_SUCCESS);
+	} else {
+		sched_setscheduler(pid, 5, param);
+		param[1] = 50;
+		sched_setscheduler(child, 5, param);
+		nice(8); //We should stop running now!
+		for(int i=0; i<40; ++i){
+			for(int j=0; j<9000000; ++j);
+			++i;
+		}
+	}
+	wait(&retval);
+	printf("Change Nice:\n");
+	print_log(pid);
+	return 0;
+}
+
+int checkYield() {
+	flush_scheduling_statistic();
+	int param[3] = {0, 100, 5};
+	sched_setscheduler(getpid(), 5, param);
+	for(int j=0; j<9000000; ++j);
+	sched_yield();
+	for(int j=0; j<9000000; ++j);
+	printf("Yield:\n");
+	print_log(getpid());
+	return 0;
+}
+
+int main() {
+	//valentin();
+	//forkShort();
+	//forkOverdue();
+	//changeParam();
+	//changeNice();
+	//checkYield();
+	printf("%s", WHITE);
+	return 0;
+}
+
