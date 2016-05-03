@@ -6,7 +6,7 @@
 #include <linux/sched.h>
 
 
-#define DEBUG_SYS
+//#define DEBUG_SYS
 
 asmlinkage int sys_is_SHORT(int pid) {
 	task_t *p = find_task_by_pid(pid);

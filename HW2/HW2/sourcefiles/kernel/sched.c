@@ -1419,15 +1419,20 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		retval=-EPERM;
 		goto out_unlock;
 	}
-	
+	#ifdef DEBUG_Set_Sched
 	printk("starting to change is setsched, policy is %d, p->policy is\n",policy,p->policy);
+	#endif
 	if(p->policy == SCHED_SHORT){//already short and wanna change params
 		if(lp.requested_time < 1 || lp.requested_time > 3000 ){
+			#ifdef DEBUG_Set_Sched
 			printk("trying to change short's requested time to %d \n val is illegal \n",lp.requested_time);
+			#endif
 			retval = -EINVAL;
 			goto out_unlock;
 		}
+		#ifdef DEBUG_Set_Sched
 		printk("trying to change short's requested time to %d \n OK \n",lp.requested_time);
+		#endif
 		p->NCrequested_time = lp.requested_time;
 		retval = 0;
 		goto out_unlock;
@@ -1454,7 +1459,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		p->requested_time = p->NCrequested_time = lp.requested_time;
 		p->remaining_time = (lp.requested_time*HZ)/1000;
 		p->remaining_cycles = p->requested_cycles =  lp.requested_cycles;	
+		#ifdef DEBUG_Set_Sched
 		printk("new short with %d cycles",p->requested_cycles);
+		#endif
 			
 		set_need_resched();
 		if (array)
@@ -1520,15 +1527,15 @@ out_nounlock:
 asmlinkage long sys_sched_setscheduler(pid_t pid, int policy,
 				      struct sched_param *param)
 {	
+	#ifdef DEBUG_Set_Sched
 	printk("pid is %d policy is %d \n",pid,policy);
+	#endif
 	task_t *p;
 	if(pid<0){
-		//printk("bad pid returning einval \n");
 		return -EINVAL;
 	}
 	p = find_process_by_pid(pid);
 	if(p->policy==SCHED_SHORT){
-		//printk("cant change SHORt returning EPERM\n");
 		return -EPERM;
 	}
 	return setscheduler(pid, policy, param);
@@ -1538,7 +1545,9 @@ asmlinkage long sys_sched_setparam(pid_t pid, struct sched_param *param)
 {
 	
 	int ret=setscheduler(pid, -1, param);
+	#ifdef DEBUG_Set_Sched
 	printk("set param returns %d \n",ret);
+	#endif
 	return ret;
 }
 
@@ -1594,7 +1603,9 @@ out_nounlock:
 
 out_unlock:
 	read_unlock(&tasklist_lock);
+	#ifdef DEBUG_GETPARAM
 	printk("get param returns %d\n",retval);
+	#endif
 	return retval;
 }
 
