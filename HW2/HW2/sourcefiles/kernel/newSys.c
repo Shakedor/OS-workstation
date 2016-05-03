@@ -33,7 +33,7 @@ asmlinkage int sys_remaining_time(int pid) {
 	#ifdef DEBUG_SYS
 	printk("remaining time is %d, requested is %d, NCreq is %d\n",p->remaining_time,p->requested_time,p->NCrequested_time);
 	#endif
-	return p->remaining_time;
+	return (p->remaining_time*1000)/HZ;
 }
 
 asmlinkage int sys_remaining_cooloffs(int pid) {

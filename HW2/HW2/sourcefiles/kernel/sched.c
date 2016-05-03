@@ -21,6 +21,7 @@
  
  //#define SetSchedDEBUG
  //#define DEBUG_activate
+ #define DEBUG_GETPARAM
  
 #include <linux/mm.h>
 #include <linux/nmi.h>
@@ -944,7 +945,7 @@ void scheduler_tick(int user_tick, int system)
 				#endif
 			// if regular short reset remaining time, decrement cycles 
 			//turn on is overdue and remove from short array and add to overdue array
-				p->remaining_time=p->requested_time;
+				p->remaining_time=(p->requested_time*HZ)/1000;
 				--p->remaining_cycles;
 				p->is_overdue=1;
 				dequeue_task(p,rq->s_active);
@@ -958,7 +959,8 @@ void scheduler_tick(int user_tick, int system)
 			}
 			else{// if overdue short
 				// reset remaining time,
-				p->remaining_time=p->requested_time=p->NCrequested_time;
+				p->requested_time=p->NCrequested_time;
+				p->remaining_time=(p->NCrequested_time*HZ)/1000;
 				
 				// if temp overdue turn off overdue flag 
 				//and remove from overdue and return to reg short array
@@ -1464,7 +1466,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 			goto out_unlock;
 		}
 		printk("trying to change short's requested time to %d \n OK \n",lp.requested_time);
-		p->NCrequested_time = (lp.requested_time*HZ/1000);
+		p->NCrequested_time = lp.requested_time;
 		retval = 0;
 		goto out_unlock;
 	}
@@ -1487,7 +1489,8 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		retval = 0;
 		p->policy = policy;
 		p->prio = p->static_prio;
-		p->remaining_time = p->requested_time = p->NCrequested_time = (lp.requested_time*HZ/1000);
+		p->requested_time = p->NCrequested_time = lp.requested_time;
+		p->remaining_time = (lp.requested_time*HZ)/1000;
 		p->remaining_cycles = p->requested_cycles =  lp.requested_cycles;	
 		printk("new short with %d cycles",p->requested_cycles);
 			
@@ -1610,6 +1613,10 @@ asmlinkage long sys_sched_getparam(pid_t pid, struct sched_param *param)
 	retval = -ESRCH;
 	if (!p)
 		goto out_unlock;
+	
+	#ifdef DEBUG_GETPARAM
+	printk("!translate! in get param: remaining time is %d, requested is %d, NCreq is %d\n",(p->remaining_time*1000)/HZ,(p->requested_time*1000)/HZ,(p->NCrequested_time*1000)/HZ);
+	#endif
 	lp.sched_priority = p->rt_priority;
 	lp.requested_time = p->NCrequested_time;
 	lp.requested_cycles = p->requested_cycles;
