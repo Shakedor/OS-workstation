@@ -958,7 +958,7 @@ void scheduler_tick(int user_tick, int system)
 			}
 			else{// if overdue short
 				// reset remaining time,
-				p->remaining_time=p->requested_time;
+				p->remaining_time=p->requested_time=p->NCrequested_time;
 				
 				// if temp overdue turn off overdue flag 
 				//and remove from overdue and return to reg short array
@@ -1456,11 +1456,15 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	rq = task_rq_lock(p, &flags);
 
 	////////////changing here
+	printk("starting to change is setsched, policy is %d, p->policy is\n",policy,p->policy);
 	if(p->policy == SCHED_SHORT){//already short and wanna change params
-		if(lp.requested_time < 1 || lp.requested_time > 3000 )
+		if(lp.requested_time < 1 || lp.requested_time > 3000 ){
+			printk("trying to change short's requested time to %d \n val is illegal \n",lp.requested_time);
 			retval = -EINVAL;
 			goto out_unlock;
-		p->requested_time = (lp.requested_time*HZ/1000);
+		}
+		printk("trying to change short's requested time to %d \n OK \n",lp.requested_time);
+		p->NCrequested_time = (lp.requested_time*HZ/1000);
 		retval = 0;
 		goto out_unlock;
 	}
@@ -1483,7 +1487,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		retval = 0;
 		p->policy = policy;
 		p->prio = p->static_prio;
-		p->remaining_time = p->requested_time = (lp.requested_time*HZ/1000);
+		p->remaining_time = p->requested_time = p->NCrequested_time = (lp.requested_time*HZ/1000);
 		p->remaining_cycles = p->requested_cycles =  lp.requested_cycles;	
 		printk("new short with %d cycles",p->requested_cycles);
 			
@@ -1567,7 +1571,10 @@ asmlinkage long sys_sched_setscheduler(pid_t pid, int policy,
 
 asmlinkage long sys_sched_setparam(pid_t pid, struct sched_param *param)
 {
-	return setscheduler(pid, -1, param);
+	
+	int ret=setscheduler(pid, -1, param);
+	printk("set param returns %d \n",ret);
+	return ret;
 }
 
 asmlinkage long sys_sched_getscheduler(pid_t pid)
@@ -1604,7 +1611,7 @@ asmlinkage long sys_sched_getparam(pid_t pid, struct sched_param *param)
 	if (!p)
 		goto out_unlock;
 	lp.sched_priority = p->rt_priority;
-	lp.requested_time = p->requested_time;
+	lp.requested_time = p->NCrequested_time;
 	lp.requested_cycles = p->requested_cycles;
 	read_unlock(&tasklist_lock);
 
@@ -1618,6 +1625,7 @@ out_nounlock:
 
 out_unlock:
 	read_unlock(&tasklist_lock);
+	printk("get param returns %d\n",retval);
 	return retval;
 }
 

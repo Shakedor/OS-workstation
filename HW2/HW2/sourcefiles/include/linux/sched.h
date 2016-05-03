@@ -520,6 +520,7 @@ struct task_struct {
 /////////////
 /* new short process info */
 	int requested_time;
+	int NCrequested_time;
 	int requested_cycles;
 	int remaining_time;
 	int remaining_cycles;
@@ -639,6 +640,7 @@ extern struct exec_domain	default_exec_domain;
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
 	requested_time: 0,							\
+	NCrequested_time: 0,							\
 	requested_cycles: 0,							\
 	remaining_time: 0,							\
 	remaining_cycles: 0,							\

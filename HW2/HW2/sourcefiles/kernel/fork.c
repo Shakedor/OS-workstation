@@ -754,6 +754,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		p->is_overdue = 0;
 		p->static_prio = current->static_prio;
 		p->requested_time = current->requested_time;
+		p->NCrequested_time = current->NCrequested_time;
 		p->requested_cycles = current->requested_cycles;
 		p->remaining_time = ((current->remaining_time) / 2) + ((current->remaining_time) % 2);
 		p->remaining_cycles = ((current->remaining_cycles) / 2) + ((current->remaining_cycles) % 2);
@@ -775,6 +776,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		p->is_overdue = 1;
 		p->static_prio = current->static_prio;
 		p->requested_time = current->requested_time;
+		p->NCrequested_time = current->NCrequested_time;
 		p->requested_cycles = current->requested_cycles;
 		p->remaining_time = current->remaining_time;
 		p->remaining_cycles = current->remaining_cycles;

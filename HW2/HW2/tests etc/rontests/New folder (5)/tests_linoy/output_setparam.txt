@@ -1,0 +1,38 @@
+remaining time father 1 599
+remaining time father 2 298
+cooloffs father 2
+remaining time father 1 599
+remaining time father 3 298 ~~ 300
+remaining time overdue father 599 ~~ 600
+remaining time father 4 2000 ~~ 2000
+remaining time father 4 1000
+father
+remaining time father 1000
+father
+remaining time father 667
+father
+remaining time father 337
+father
+remaining time father 5
+father
+remaining time father 0
+father
+remaining time father 0
+remaining time father 1 599
+remaining time father 3 298 ~~ 300
+remaining time overdue father 599 ~~ 600
+remaining time father 4 2000 ~~ 2000
+errno 0
+cooloffs father 0
+remaining time son1 1000
+cooloffs son 1 == 1
+
+SON ENTERING OVERDUE
+cooloffs overdue son 0 == 0
+
+SON EXITING OVERDUE
+cooloffs overdue son 0 == 0
+remaining time son1 2000 ~~ 2000
+
+SON ENTERING OVERDUE
+remaining time son1 0 ~~ 0

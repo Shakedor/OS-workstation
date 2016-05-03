@@ -1,0 +1,35 @@
+remaining time father 599
+remaining time father 298
+cooloffs father 2
+remaining time father 599
+remaining time father 298
+remaining time father 148
+father
+remaining time father 148
+father
+remaining time father 337
+father
+remaining time father 1923
+father
+remaining time father 1519
+father
+remaining time father 1103
+father
+remaining time father 701
+remaining time father 599
+remaining time father 298
+errno 0
+cooloffs father 0
+remaining time son1 150
+son1
+remaining time son1 150
+son1
+remaining time son1 111
+son1
+remaining time son1 70
+son1
+remaining time son1 29
+son1
+remaining time son1 587
+son1
+remaining time son1 546

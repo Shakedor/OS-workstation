@@ -5,9 +5,9 @@
  *      Author: root
  */
 #include <sched.h>
-#include "test_utilities.h"
+#include "test_utilities_valka.h"
 #include <assert.h>
-#include "short_sys.h"
+#include "hw2_syscalls.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,7 +17,6 @@
 #include <sys/wait.h>
 #include <asm/errno.h>
 #include <sys/resource.h>
-#include "hw2_syscalls.h"
 
 #define BLACK   "\033[30m"      /* Black */
 #define RED     "\033[31m"      /* Red */
@@ -73,19 +72,16 @@ int valentin(){
 	flush_scheduling_statistic();
 	int pid = fork();
 	int retval;
-	if(pid == 0){//son
+	if(pid == 0){
 		for(int i=0; i<20; ++i){
 			for(int j=0; j<9000000; ++j);
 			++i;
 		}
 		_exit(EXIT_SUCCESS);
-	} else {//father
+	} else {
 		int cooloffs = 5;
 		int requested_time = 25;
-		struct sched_param* param = (struct sched_param*)malloc(sizeof(struct sched_param));
-		param->sched_priority=0;
-		param->requested_time=requested_time;
-		param->requested_cycles=cooloffs;
+		int param[3] = {0, requested_time, cooloffs};
 		sched_setscheduler(pid, 5, param);
 	}
 
@@ -99,11 +95,8 @@ int forkShort() {
 	flush_scheduling_statistic();
 	int pid = getpid();
 	int retval;
-		struct sched_param* param = (struct sched_param*)malloc(sizeof(struct sched_param));
-		param->sched_priority=0;
-		param->requested_time=25;
-		param->requested_cycles=5;
-		sched_setscheduler(pid, 5, param);
+	int param[3] = {0, 25, 5};
+	sched_setscheduler(pid, 5, param);
 	int child = fork();
 	if(!child) {
 		for(int i=0; i<20; ++i){
@@ -124,10 +117,7 @@ int forkOverdue() {
 	flush_scheduling_statistic();
 	int pid = getpid();
 	int retval;
-	struct sched_param* param = (struct sched_param*)malloc(sizeof(struct sched_param));
-	param->sched_priority=0;
-	param->requested_time=25;
-	param->requested_cycles=5;
+	int param[3] = {0, 25, 5};
 	sched_setscheduler(pid, 5, param);
 	while(is_SHORT(pid));
 	int child = fork();
@@ -149,19 +139,17 @@ int forkOverdue() {
 int changeParam() {
 	flush_scheduling_statistic();
 	int pid = getpid();
-	struct sched_param* param = (struct sched_param*)malloc(sizeof(struct sched_param));
-	param->sched_priority=0;
-	param->requested_time=20;
-	param->requested_cycles=5;
+	int param[3] = {0, 20, 5};
+
 	sched_setscheduler(pid, 5, param);
 
-	param->requested_time = 50;
+	param[1] = 50;
 	while(is_SHORT(pid));
 	sched_setparam(pid, param);
 	while(!is_SHORT(pid));
 	while(is_SHORT(pid));
 	while(!is_SHORT(pid));
-	param->requested_time = 100;
+	param[1] = 100;
 	sched_setparam(pid, param);
 	while(is_SHORT(pid));
 	while(!is_SHORT(pid));
@@ -173,10 +161,7 @@ int changeParam() {
 
 int changeNice() {
 	flush_scheduling_statistic();
-	struct sched_param* param = (struct sched_param*)malloc(sizeof(struct sched_param));
-	param->sched_priority=0;
-	param->requested_time=100;
-	param->requested_cycles=5;	
+	int param[3] = {0, 100, 5};
 	int retval;
 	int pid = getpid();
 	int child = fork();
@@ -188,7 +173,7 @@ int changeNice() {
 		_exit(EXIT_SUCCESS);
 	} else {
 		sched_setscheduler(pid, 5, param);
-		param->requested_time = 50;
+		param[1] = 50;
 		sched_setscheduler(child, 5, param);
 		nice(8); //We should stop running now!
 		for(int i=0; i<40; ++i){
@@ -204,10 +189,7 @@ int changeNice() {
 
 int checkYield() {
 	flush_scheduling_statistic();
-	struct sched_param* param = (struct sched_param*)malloc(sizeof(struct sched_param));
-	param->sched_priority=0;
-	param->requested_time=100;
-	param->requested_cycles=5;	
+	int param[3] = {0, 100, 5};
 	sched_setscheduler(getpid(), 5, param);
 	for(int j=0; j<9000000; ++j);
 	sched_yield();
@@ -218,12 +200,12 @@ int checkYield() {
 }
 
 int main() {
-	valentin();
+	//valentin();
 	//forkShort();
 	//forkOverdue();
 	//changeParam();
 	//changeNice();
-	//checkYield();
+	checkYield();
 	printf("%s", WHITE);
 	return 0;
 }
