@@ -510,10 +510,6 @@ fake_volatile:
 		current->tux_exit();
 	}
 	
-	/* HW2 monitor */
-	current->reason = ENDED;
-	/* HW2 monitor */
-	
 	__exit_mm(tsk);
 
 	lock_kernel();

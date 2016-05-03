@@ -154,13 +154,6 @@ struct runqueue {
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;
-//////////////
-//////////Test Addition
-    /* HW2 monitor */
-	struct switch_info switchInfo[SCHED_SAVES_LIMIT];
-	int switchCounter, switchIndex, switchTotal;
-    /* HW2 monitor */
-
 } ____cacheline_aligned;
 
 static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
@@ -481,9 +474,6 @@ repeat_lock_task:
 		 * If sync is set, a resched_task() is a NOOP
 		 */
 		if (p->prio < rq->curr->prio)
-            /* HW2 monitor */
-            current->reason = HIGHER_PRIORITY;
-            /* HW2 monitor */
 			resched_task(rq->curr);
 		success = 1;
 	}
@@ -911,10 +901,6 @@ void scheduler_tick(int user_tick, int system)
 			p->first_time_slice = 0;
 			p->time_slice = TASK_TIMESLICE(p);
 			
-			/* HW2 monitor */
-			current->reason = TIMESLICE_ENDED;
-			/* HW2 monitor */
-
 			if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
 				if (!rq->expired_timestamp)
 					rq->expired_timestamp = jiffies;
@@ -943,11 +929,6 @@ void scheduler_tick(int user_tick, int system)
 				dequeue_task(p,rq->s_active);
 				enqueue_task(p,rq->s_overdue);
 				set_tsk_need_resched(p);	
-
-				 /* HW2 monitor */
-            	current->reason = BECAME_OVERDUE;
-            	/* HW2 monitor */
-
 			}
 			else{// if overdue short
 				// reset remaining time,
@@ -964,11 +945,6 @@ void scheduler_tick(int user_tick, int system)
 					dequeue_task(p,rq->s_overdue);	
 					enqueue_task(p,rq->s_active);
 					set_tsk_need_resched(p);
-
-					/* HW2 monitor */
-           			current->reason = OVERDUE_TO_SHORT;
-            		/* HW2 monitor */
-
 
 				}
 				// if perma overdue deque and enque from overdue array
@@ -994,18 +970,6 @@ out:
 }
 
 void scheduling_functions_start_here(void) { }
-
-
-/************************* HW2 monitor *********************/
-int get_task_type(task_t* p){
-	if(p->policy == SCHED_FIFO) return RT_FIFO;
-	if(p->policy == SCHED_RR) return RT_RR;
-	if(p->policy == SCHED_OTHER) return OTHER;
-	if(overdue_task(p)) return SHORT_OVERDUE;
-	if(short_task(p)) return SHORT_NOT_OVERDUE;
-	return ERR;
-}
-/************************* HW2 monitor *********************/
 
 
 ///////////////
@@ -1138,25 +1102,6 @@ switch_tasks:
 	prefetch(next);
 	clear_tsk_need_resched(prev);
 	
-	/* HW2 monitor */
-	int csIndex = rq->switchIndex >= SCHED_SAVES_LIMIT ? 0 : rq->switchIndex;
-	if (prev->reason == CREATED ||	prev->reason == ENDED) {
-		rq-> switchCounter = 0;
-	}
-	if (rq->switchCounter < SCHED_MONITORING_LIMIT) {
-		rq->switchInfo[csIndex].previous_pid = prev->pid;
-		rq->switchInfo[csIndex].previous_type = get_task_type(prev);
-		rq->switchInfo[csIndex].next_pid = next->pid;
-		rq->switchInfo[csIndex].next_type = get_task_type(next);
-
-		rq->switchInfo[csIndex].time = jiffies;
-		rq->switchInfo[csIndex].reason = prev->reason;
-		rq->switchIndex = csIndex + 1;
-		(rq->switchTotal)++;
-		(rq->switchCounter)++;
-	}
-	/* HW2 monitor */
-
 	if (likely(prev != next)) {
 		rq->nr_switches++;
 		rq->curr = next;
@@ -1176,28 +1121,6 @@ switch_tasks:
 	
 
 }
-
-
-/* HW2 monitor */
-int getSwitchTotal(void) {
-	runqueue_t *rq = this_rq_lock();
-	int tmp = rq->switchTotal;
-	rq_unlock(rq);
-	return tmp;
-}
-int getSwitchIndex(void) {
-	runqueue_t *rq = this_rq_lock();
-	int tmp = rq->switchIndex;
-	rq_unlock(rq);
-	return tmp;
-}
-struct switch_info* getSwitchInfo(void) {
-	runqueue_t *rq = this_rq_lock();
-	struct switch_info* tmp = rq->switchInfo;
-	rq_unlock(rq);
-	return tmp;
-}
-/* HW2 monitor */
 
 /*
  * The core wakeup function.  Non-exclusive wakeups (nr_exclusive == 0) just
@@ -1782,10 +1705,6 @@ asmlinkage long sys_sched_yield(void)
 	prio_array_t *array = current->array;
 	int i;
 
-	/* HW2 monitor */
-    current->reason = YEILDS;
-    /* HW2 monitor */
-
 	if(rq->s_overdue != array){ // non overdue arrays
 		if (unlikely(rt_task(current))|| array == rq->s_active ) {
 			list_del(&current->run_list);
@@ -2044,13 +1963,6 @@ void __init sched_init(void)
 
 
 	for (i = 0; i < NR_CPUS; i++) {
-		
-		/* HW2 monitor */
-		rq->switchCounter = 0;
-		rq->switchIndex = 0;
-		rq->switchTotal = 0;
-		/* HW2 monitor */
-
 		prio_array_t *array;
 
 		rq = cpu_rq(i);
@@ -2340,31 +2252,6 @@ int ll_copy_from_user(void *to, const void *from_user, unsigned long len)
 	return 0;
 }
 
-/* HW2 monitor */
-asmlinkage int sys_get_scheduling_statistic(struct switch_info *user_switch_info){
-	if (!user_switch_info) { return -EINVAL; }
-	if (getSwitchTotal() >= SCHED_SAVES_LIMIT) {
-		int partSize = (sizeof(struct switch_info))*(SCHED_SAVES_LIMIT - getSwitchIndex());
-		copy_to_user(user_switch_info, getSwitchInfo() + getSwitchIndex() , partSize);
-		partSize = (sizeof(struct switch_info))*getSwitchIndex();
-		copy_to_user(user_switch_info + (SCHED_SAVES_LIMIT - getSwitchIndex()), getSwitchInfo() , partSize);
-		return SCHED_SAVES_LIMIT;
-	} else {
-		int partSize = (sizeof(struct switch_info))*(getSwitchIndex());
-		copy_to_user(user_switch_info, getSwitchInfo() , partSize);
-		return getSwitchTotal();
-	}
-}
-
-asmlinkage int sys_flush_scheduling_statistic(){
-	runqueue_t *rq = this_rq_lock();
-	rq->switchTotal = 0;
-	rq->switchIndex = 0;
-	rq->switchCounter = 0;
-	rq_unlock(rq);
-	return 0;
-}
-/* HW2 monitor */
 
 #ifdef CONFIG_LOLAT_SYSCTL
 struct low_latency_enable_struct __enable_lowlatency = { 0, };
