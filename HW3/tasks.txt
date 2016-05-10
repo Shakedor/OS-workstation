@@ -1,0 +1,22 @@
+1. learn pthread iterface
+
+3. create a double linked locked list with iterators, each node has a lock.
+4. create logging functions "candidate chosen","element removed"
+
+5. create one thread walk algorithm
+
+6create main program:
+getting params
+creating list,
+cloning T times and performing the algorithm on a given list.
+
+7 create a ton of tests:
+
+
+
+
+- test correct printing for one thread for varying Ns
+
+- have 2 threads print conflicts/waiting prints
+
+- massive rand test, grep strings from logger files
