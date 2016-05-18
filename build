@@ -1,7 +1,0 @@
-cd /usr/src/linux-2.4.18-14custom
-make bzImage
-if [[ $? == 0 ]]
-then
-	cp arch/i386/boot/bzImage /boot/vmlinuz-2.4.18-14custom
-	reboot
-fi
