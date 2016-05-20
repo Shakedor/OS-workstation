@@ -20,8 +20,6 @@ namespace ListExceptions{
 
 using namespace std;
 
-template<class T>
-class List;
 
 template<class T>
 class Node{
@@ -49,6 +47,9 @@ public:
 		pthread_mutex_destroy(this->lock);
 	}
 
+	T& operator*(){
+		return T;
+	}
 
 };
 
@@ -59,7 +60,6 @@ class Lock_list{
 	friend class Node<T>;
 	Node<T>* first;
 	Node<T>* last;
-	Node<T>* current;
 	int size;
 
 public:
@@ -97,87 +97,53 @@ public:
 		return this->size;
 	}
 
-	T& getFirst();
-	T& getLast();
-	T& getNext();
-	T& getPrev();
-	void unlockCurrent();
-	// current wil point to new data
+	
+	
+	// insertions
 	void insertFirst(T& data);
 	void insertLast(T& data);
-	void insertBeforeCurrent(T& data);
-	void insertAfterCurrent(T& data);
-	//current wil point to next after removal
+	void insertBeforeCurrent(T& data, Node<T> curr);
+	void insertAfterCurrent(T& data, Node<T> curr);
+	
+	//current wil point to prev after removal (lock prev and next)
 	void removeCurrent();
+	//removes a given node assuming it and its prev and next are locked by current thread.
+	//returns a node to the prev unless removed first in which case returns NULL
+	Node<T>* doRemove(Node<T>);
 
 
+	// move iterator 
+	//does not protect against corruption
+	void iterFirst(Node<T>* curr);
+	void iterLast(Node<T>* curr);
+	void iterPrev(Node<T>* curr);
+	void iterNext(Node<T>* curr);
+
+	//locks node and returns a pointer to it.
+	Node<T>* lockCurrent(Node<T>* curr);
+	Node<T>* lockPrev(Node<T>* curr);
+	Node<T>* lockNext(Node<T>* curr);
+	Node<T>* lockFirst();
+	Node<T>* lockNext();
+	Node<T>* lockNode(Node<T>* node); // not protected against data corruption 
+
+	// unlocks a given node or it prev,next
+	void unlockCurrent(Node<T>*);
+	void unlockPrev(Node<T>);
+	void unlockNext(Node<T>);
+	void unlockFirst();
+	void unlockNext();
+	void unlockNode(Node<T> node); // not protected against data corruption 
 
 
 };
 
-template<class T>
-T& Lock_list<T>::getFirst(){
-	// lock first node and get data
-	
-	if (first == NULL){
-		throw ListExceptions::ElementNotFound;
-	}
-	current = first;
-	pthread_mutex_lock(first->lock);
-	return first->data;
-}
 
-template<class T>
-T& Lock_list<T>::getLast(){
-	// lock first node and get data
 
-	if (last == NULL){
-		throw ListExceptions::ElementNotFound;
-	}
-	current = last;
-	pthread_mutex_lock(last->lock);
-	return last->data;
-}
-
-template<class T>
-T& Lock_list<T>::getNext(){
-	//update current than hand over hand lock
-	if (current->next == NULL){
-		pthread_mutex_unlock(current->lock);
-		throw ListExceptions::ElementNotFound;
-	}
-	current = current->next;
-	pthread_mutex_lock(current->lock);
-	pthread_mutex_unlock(current->prev->lock);
-	return current->data;
-}
-
-template<class T>
-T& Lock_list<T>::getprev(){
-	//update current than hand over hand lock
-	if (current->prev == NULL){
-		pthread_mutex_unlock(current->lock);
-		throw ListExceptions::ElementNotFound;
-	}
-	current = current->prev;
-	pthread_mutex_lock(current->lock);
-	pthread_mutex_unlock(current->next->lock);
-	return current->data;
-}
-
-template<class T>
-void Lock_list<T>::unlockCurrent(){
-	//unlock current
-	if (current == NULL){
-		return;
-	}
-	pthread_mutex_unlock(current->lock);
-
-}
 
 template<class T>
 void Lock_list<T>::insertFirst(T& data){
-	getFirst();
+	Node<T> first = lockFirst();
 	insertBeforeCurrent(data);
 }
 
@@ -309,6 +275,9 @@ void Lock_list<T>::removeCurrent(){
 	
 
 }
+
+
+
 
 
 #endif /* LIST_H_ */
