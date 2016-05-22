@@ -18,5 +18,13 @@
     <ClInclude Include="..\..\lock_list.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\testsMacros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\lockListTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
