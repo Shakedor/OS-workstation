@@ -129,8 +129,8 @@ public:
 
 	// unlocks a given node or it prev,next
 	void unlockCurrent(Node<T>* curr);
-	void unlockPrev(Node<T> curr);
-	void unlockNext(Node<T> curr);
+	void unlockPrev(Node<T>* curr);
+	void unlockNext(Node<T>* curr);
 	void unlockFirst();
 	void unlockLast();
 	
