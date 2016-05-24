@@ -10,27 +10,53 @@ using namespace std;
 
 
 
-void SievePerThread(Lock_list<int> lock_list, int N) {
+// get a lock list and a numebr N (th emaximum element of the list)
+void SievePerThread(Lock_list<int> list, int N,FILE* out) {
 	Node<int>* current;
-	lock_list.iterFirst(current);
-	Node<int>* goback = lock_list.lockNode(current);
-	int p = *current;
-	bool sqr = false;    // remember if we passed p^2 
-	while (current && *current <= N) {
-		// check if the current number is divided by the prime candidate 
-		if ((*current % p) == 0) {
-			if (*current == (p*p)) {
-				sqr = true;
+	Node<int>* candidate;
+	candidate = current = list.lockFirst();
+	int p = **current;
+	bool sqr = false;
+
+	while (candidate) {//for each prime candidate
+		current = list.lockCurrent(candidate);
+		p = **current;
+		
+		while (current){//for each current in a candidate run
+			current = list.lockNext(current);
+			if (current == NULL){// if end of list
+				list.unlockLast();
+				break;
 			}
-			lock_list.removeCurrent();
-		}
-		// if the sqr is gone then move to the next prime candidate
-		if (*current > (p*p) && sqr == false) {
-			lock_list.iterNext(goback);
-			goback = lock_list.lockNode(current);
-			int p = *current;
-		}
-		lock_list.iterNext(current);
+			
+			if ((**current % p) == 0){// if current divides p
+				if (**current == (p*p)) { // if we reached p^2 mark it and go on
+					sqr = true;
+					fprintf(out, "prime %d\n", p);
+				}
+				//get the next and remove node
+				fprintf(out, "%d\n", **current);
+
+				list.lockNext(current);
+				list.doRemove(current);
+				list.unlockNext(current);
+			}
+
+			//if we passed p^2 without seeing it then other thread handling this candidate
+			if (sqr == false && (**current > (p*p))){
+				list.unlockPrev(current);
+				list.unlockCurrent(current);
+				break;
+			}
+				
+		}//end of current while
+
+		//update candidate
+		candidate = list.lockCurrent(candidate);
+		candidate = list.lockNext(candidate);
+		list.unlockPrev(candidate);
+		list.unlockCurrent(candidate);
+		
 	}
 
 }

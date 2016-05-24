@@ -367,7 +367,7 @@ void Lock_list<T>::unlockCurrent(Node<T>* curr){
 		return NULL;
 	}
 	pthread_mutex_unlock(curr->lock);
-	return curr;
+	return ;
 }
 
 template<class T>
@@ -378,8 +378,8 @@ void Lock_list<T>::unlockPrev(Node<T>* curr){
 	if (!curr->prev){
 		return NULL;
 	}
-	pthread_mutex_unlock(curr->lock);
-	return last;
+	pthread_mutex_unlock(curr->prev->lock);
+	return ;
 }
 
 template<class T>
@@ -390,8 +390,8 @@ void Lock_list<T>::unlockNext(Node<T>* curr){
 	if (!curr->next){
 		return NULL;
 	}
-	pthread_mutex_unlock(curr->lock);
-	return last;
+	pthread_mutex_unlock(curr->next->lock);
+	return ;
 }
 
 template<class T>
@@ -400,7 +400,7 @@ void Lock_list<T>::unlockFirst(Node<T>* curr){
 		return NULL;
 	}
 	pthread_mutex_unlock(first->lock);
-	return first;
+	return ;
 }
 
 template<class T>
@@ -409,7 +409,7 @@ void Lock_list<T>::unlockLast(Node<T>* curr){
 		return NULL;
 	}
 	pthread_mutex_unlock(last->lock);
-	return last;
+	return;
 }
 
 
