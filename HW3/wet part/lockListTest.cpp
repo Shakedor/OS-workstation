@@ -4,26 +4,26 @@
 int test_size(){
 	Lock_list<int> list;
 	int x = 5;
-	ASSERT_TEST(list.getSize== 0);
+	ASSERT_TEST(list.getSize()== 0);
 	list.insertFirst(x);
-	ASSERT_TEST(list.getSize == 1);
+	ASSERT_TEST(list.getSize() == 1);
 	list.insertFirst(x);
-	ASSERT_TEST(list.getSize == 2);
+	ASSERT_TEST(list.getSize() == 2);
 	list.insertFirst(x);
-	ASSERT_TEST(list.getSize == 3);
+	ASSERT_TEST(list.getSize() == 3);
 	list.insertFirst(x);
 	list.insertFirst(x);
-	ASSERT_TEST(list.getSize == 5);
+	ASSERT_TEST(list.getSize() == 5);
 	Node<int>* node;
 	list.iterLast(node);
 	list.doRemove(node);
-	ASSERT_TEST(list.getSize == 4);
+	ASSERT_TEST(list.getSize() == 4);
 	list.doRemove(node);
 	list.doRemove(node);
-	ASSERT_TEST(list.getSize == 2);
+	ASSERT_TEST(list.getSize() == 2);
 	list.doRemove(node);
 	list.doRemove(node);
-	ASSERT_TEST(list.getSize == 0);
+	ASSERT_TEST(list.getSize() == 0);
 
 }
 
