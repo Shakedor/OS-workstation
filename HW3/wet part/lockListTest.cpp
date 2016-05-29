@@ -23,12 +23,18 @@ int test_size(){
 	ASSERT_TEST(**node == 5);
 	list.doRemove(node);
 	ASSERT_TEST(list.getSize() == 4);
+	list.iterLast(&node);
 	list.doRemove(node);
+	list.iterLast(&node);
 	list.doRemove(node);
 	ASSERT_TEST(list.getSize() == 2);
+	list.iterLast(&node);
 	list.doRemove(node);
+	list.iterLast(&node);
 	list.doRemove(node);
 	ASSERT_TEST(list.getSize() == 0);
+
+	return 1;
 
 }
 
