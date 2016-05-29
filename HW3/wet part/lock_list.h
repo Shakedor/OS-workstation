@@ -10,13 +10,19 @@
 
 #include <stdlib.h>
 #include <map>
+
+#include <sys/types.h>
 #include <pthread.h>
 
 namespace ListExceptions{
 	class ElementNotFound {};
 }
 
-
+namespace mutexExceptions{
+	class mutex_attr_init_failed {};
+	class mutex_attr_setType_failed {};
+	class mutex_init_failed {};
+}
 
 using namespace std;
 
@@ -26,7 +32,7 @@ class Node{
 
 public:
 	T data;
-	pthread_mutex_t* lock;
+	pthread_mutex_t lock;
 	Node<T>* next;
 	Node<T>* prev;
 
@@ -34,18 +40,35 @@ public:
 	Node(const T newData){
 		this->data = newData;
 		this->next = NULL;
+		
+		int res = 0;
 		pthread_mutexattr_t attr;
 
-		pthread_mutexattr_init(&attr);
-		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+		res = pthread_mutexattr_init(&attr);
+		if (res != 0){
+			throw mutexExceptions::mutex_attr_init_failed();
 
-		pthread_mutex_init(this->lock,&attr);
+		}
+
+		res = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+		if (res != 0){
+			throw mutexExceptions::mutex_attr_setType_failed();
+
+		}
+
+		res = pthread_mutex_init(&lock,&attr);
+		if (res != 0){
+			throw mutexExceptions::mutex_init_failed();
+
+		}
+
 		pthread_mutexattr_destroy(&attr);
 
 	}
 
 	~Node(){
-		pthread_mutex_destroy(this->lock);
+		pthread_mutex_destroy(&lock);
+		free(lock);
 	}
 
 	T& operator*(){
@@ -115,10 +138,10 @@ public:
 
 	// move iterator 
 	//does not protect against corruption
-	void iterFirst(Node<T>* curr);
-	void iterLast(Node<T>* curr);
-	void iterPrev(Node<T>* curr);
-	void iterNext(Node<T>* curr);
+	void iterFirst(Node<T>** curr);
+	void iterLast(Node<T>** curr);
+	void iterPrev(Node<T>** curr);
+	void iterNext(Node<T>** curr);
 
 	//locks node and returns a pointer to it.
 	Node<T>* lockCurrent(Node<T>* curr);
@@ -144,14 +167,77 @@ public:
 
 template<class T>
 void Lock_list<T>::insertFirst(T& data){
-	Node<T>* first = lockFirst();
-	insertBeforeCurrent(data,first);
+	// if no first make only node
+	//if first lock it and then make new node and link it.
+	int isOnlyNode = (first == NULL);
+	if (!isOnlyNode){
+		pthread_mutex_lock(&(first->lock));
+	}
+
+	
+	//create new node
+	Node<T> *newNode = new Node<T>(data);
+
+	//lock it
+	pthread_mutex_lock(&(newNode->lock));
+
+	if (isOnlyNode){// if onlynode update last
+		last = newNode;
+	}
+
+	if (!isOnlyNode){//if not alone link 
+		newNode->next = first;
+		first->prev = newNode;
+		
+	}
+	//update first
+	first = newNode;
+	//unlock
+	pthread_mutex_unlock(&(newNode->lock));
+	if (!isOnlyNode){
+		pthread_mutex_unlock(&(newNode->next->lock));
+	}
+
+	size++;
+	return;
 }
 
 template<class T>
 void Lock_list<T>::insertLast(T& data){
-	Node<T>* last = lockLast();
-	insertAfterCurrent(data,last);
+	// if no last make only node
+	//if last lock it and then make new node and link it.
+	int isOnlyNode = (last == NULL);
+	if (!isOnlyNode){
+		pthread_mutex_lock(&(last->lock));
+	}
+
+
+	//create new node
+	Node<T> *newNode = new Node<T>(data);
+
+	//lock it
+	pthread_mutex_lock(&(newNode->lock));
+
+	if (isOnlyNode){// if onlynode update last
+		first = newNode;
+	}
+
+	if (!isOnlyNode){//link 
+		newNode->prev = last;
+		first->next = newNode;
+		
+	}
+	//update last
+	last = newNode;
+
+	//unlock
+
+	if (!isOnlyNode){
+		pthread_mutex_unlock(&(newNode->prev->lock));
+	}
+	pthread_mutex_unlock(&(newNode->lock));
+	size++;
+	return;
 }
 
 template<class T>
@@ -159,16 +245,16 @@ void Lock_list<T>::insertBeforeCurrent(T& data, Node<T>* curr){
 	//if has previous aquire current and prev lock in order
 	//note that if this node is first it will remain locked after the if statement
 	if (curr->prev != NULL){
-		pthread_mutex_unlock(curr->lock);
-		pthread_mutex_lock(curr->prev->lock);
-		pthread_mutex_lock(curr->lock);
+		pthread_mutex_unlock(&(curr->lock));
+		pthread_mutex_lock(&(curr->prev->lock));
+		pthread_mutex_lock(&(curr->lock));
 	}
 
 	//create new node
 	Node<T> *newNode =new Node<T>(data);
 
 	//lock it
-	pthread_mutex_lock(newNode->lock);
+	pthread_mutex_lock(&(newNode->lock));
 
 	// link it to current and its prev if it exists
 	if (curr->prev != NULL){
@@ -187,9 +273,11 @@ void Lock_list<T>::insertBeforeCurrent(T& data, Node<T>* curr){
 
 
 	if (newNode->prev != NULL){
-		pthread_mutex_unlock(newNode->prev->lock);
+		pthread_mutex_unlock(&(newNode->prev->lock));
 	}
-	pthread_mutex_unlock(newNode->next->lock);
+	pthread_mutex_unlock(&(newNode->next->lock));
+	size++;
+	return;
 	
 }
 
@@ -198,14 +286,14 @@ void Lock_list<T>::insertAfterCurrent(T& data, Node<T>* curr){
 	//if has next aquire next lock
 	//note that if this node is last it will remain locked after the if statement
 	if (curr->next != NULL){
-		pthread_mutex_lock(curr->next->lock);
+		pthread_mutex_lock(&(curr->next->lock));
 	}
 
 	//create new node
 	Node<T> *newNode = new Node<T>(data);
 
 	//lock it
-	pthread_mutex_lock(newNode->lock);
+	pthread_mutex_lock(&(newNode->lock));
 
 	// link it to current and its next if it exists
 	if (curr->next != NULL){
@@ -223,9 +311,11 @@ void Lock_list<T>::insertAfterCurrent(T& data, Node<T>* curr){
 	
 
 	if (newNode->next != NULL){
-		pthread_mutex_unlock(newNode->next->lock);
+		pthread_mutex_unlock(&(newNode->next->lock));
 	}
-	pthread_mutex_unlock(newNode->prev->lock);
+	pthread_mutex_unlock(&(newNode->prev->lock));
+	size++;
+	return;
 }
 
 
@@ -237,13 +327,13 @@ void Lock_list<T>::remove(Node<T>* curr){
 	
 	//lock all 3(or less) in order
 	if (hasPrev){// if has prev unlock current and aquire prev and current
-		pthread_mutex_unlock(curr->lock);
-		pthread_mutex_lock(curr->prev->lock);
-		pthread_mutex_lock(curr->lock);
+		pthread_mutex_unlock(&(curr->lock));
+		pthread_mutex_lock(&(curr->prev->lock));
+		pthread_mutex_lock(&(curr->lock));
 	}
 
 	if (hasNext){
-		pthread_mutex_lock(curr->next->lock);
+		pthread_mutex_lock(&(curr->next->lock));
 	}
 
 	doRemove(curr);
@@ -279,35 +369,37 @@ void Lock_list<T>::doRemove(Node<T>* curr){
 	//assign next to current
 	Node<T> *temp = curr;
 
-	pthread_mutex_unlock(curr->lock);
+	pthread_mutex_unlock(&(curr->lock));
 	temp = curr->prev;
 	delete curr;
 	curr = temp;
 
 
+	size--;
+	return;
 }
 
 template<class T>
-void Lock_list<T>::iterFirst(Node<T>* curr){
-	curr = first;
-
-}
-
-template<class T>
-void Lock_list<T>::iterLast(Node<T>* curr){
-	curr = last;
+void Lock_list<T>::iterFirst(Node<T>** curr){
+	*curr = first;
 
 }
 
 template<class T>
-void Lock_list<T>::iterPrev(Node<T>* curr){
-	curr = curr->prev;
+void Lock_list<T>::iterLast(Node<T>** curr){
+	*curr = last;
 
 }
 
 template<class T>
-void Lock_list<T>::iterNext(Node<T>* curr){
-	curr = curr->next;
+void Lock_list<T>::iterPrev(Node<T>** curr){
+	*curr = (*curr)->prev;
+
+}
+
+template<class T>
+void Lock_list<T>::iterNext(Node<T> **curr){
+	*curr = (*curr)->next;
 
 }
 
@@ -316,7 +408,7 @@ Node<T>* Lock_list<T>::lockCurrent(Node<T>* curr){
 	if (!curr){
 		return NULL;
 	}
-	pthread_mutex_lock(curr->lock);
+	pthread_mutex_lock(&(curr->lock));
 	return curr;
 }
 
@@ -328,7 +420,7 @@ Node<T>* Lock_list<T>::lockPrev(Node<T>* curr){
 	if (!curr->prev){
 		return NULL;
 	}
-	pthread_mutex_lock(curr->prev->lock);
+	pthread_mutex_lock(&(curr->prev->lock));
 	return curr->prev;
 }
 
@@ -340,7 +432,7 @@ Node<T>* Lock_list<T>::lockNext(Node<T>* curr){
 	if (!curr->next){
 		return NULL;
 	}
-	pthread_mutex_lock(curr->next->lock);
+	pthread_mutex_lock(&(curr->next->lock));
 	return curr->next;
 }
 
@@ -349,7 +441,7 @@ Node<T>* Lock_list<T>::lockFirst(){
 	if (!first){
 		return NULL;
 	}
-	pthread_mutex_lock(first->lock);
+	pthread_mutex_lock(&(first->lock));
 	return first;
 }
 
@@ -358,58 +450,58 @@ Node<T>* Lock_list<T>::lockLast(){
 	if (!last){
 		return NULL;
 	}
-	pthread_mutex_lock(last->lock);
+	pthread_mutex_lock(&(last->lock));
 	return last;
 }
 
 template<class T>
 void Lock_list<T>::unlockCurrent(Node<T>* curr){
 	if (!curr){
-		return NULL;
+		return ;
 	}
-	pthread_mutex_unlock(curr->lock);
+	pthread_mutex_unlock(&(curr->lock));
 	return ;
 }
 
 template<class T>
 void Lock_list<T>::unlockPrev(Node<T>* curr){
 	if (!curr){
-		return NULL;
+		return ;
 	}
 	if (!curr->prev){
-		return NULL;
+		return ;
 	}
-	pthread_mutex_unlock(curr->prev->lock);
+	pthread_mutex_unlock(&(curr->prev->lock));
 	return ;
 }
 
 template<class T>
 void Lock_list<T>::unlockNext(Node<T>* curr){
 	if (!curr){
-		return NULL;
+		return ;
 	}
 	if (!curr->next){
-		return NULL;
+		return ;
 	}
-	pthread_mutex_unlock(curr->next->lock);
+	pthread_mutex_unlock(&(curr->next->lock));
 	return ;
 }
 
 template<class T>
 void Lock_list<T>::unlockFirst(){
 	if (!first){
-		return NULL;
+		return ;
 	}
-	pthread_mutex_unlock(first->lock);
+	pthread_mutex_unlock(&(first->lock));
 	return ;
 }
 
 template<class T>
 void Lock_list<T>::unlockLast(){
 	if (!last){
-		return NULL;
+		return ;
 	}
-	pthread_mutex_unlock(last->lock);
+	pthread_mutex_unlock(&(last->lock));
 	return;
 }
 
