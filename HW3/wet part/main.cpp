@@ -6,23 +6,54 @@
 
 using namespace std;
 
-struct ArgThread {
+//the arguments for the sieve algorithm.
+
+typedef struct ArgThread {
 	int N;
-	
-};
+	List<int> list;
+	FILE* prime;
+	FILE* out;
+}ArgThread;
+
+void* threadFunc(void* arg);
+
+//wraper for the sieve algorithm.
+
+void* threadFunc(void* arg) {
+	ArgThread argTh = *((ArgThread*) arg);
+	SievePerThread(argTh.list, argTh.N, argTh.out, argTh.prime);
+}
 
 int main(int argc, char* argv[]) {
+	//the number of values
 	int N = atoi(argv[1]);
+
+	//the number of threads.
 	int T = atoi(argv[2]);
 	List<int> list = new List<int>();
 	Node<int>* current;
+
+	//initialize the list wwith the values [1...N].
 	for (int i = 2; i <= N; i++){
 		current = list.insertLast(i); 
 		list.unlockCurrent(current);
 	}
 	FILE* prime = fopen("prime", "w");
-	for (int i = 1; i <= T; i++) {
+	FILE* out;
 
+	//an array of all the threads id's.
+	int* threadArray = new int[T];
+
+	//creating T threads with the right arguments.
+	for (int i = 1; i <= T; i++) {
+		char filename[sizeof ("file100.txt")];
+		sprintf(filename, "thread-%d.txt", i);
+		out = fopen(filename,"w");
+		ArgThread arg = {N, list, prime, out};
+		pthread_create(threadArray[i], NULL, threadFunc, (void *)ArgThread);
 	}
+	delete[] threadArray;
+	fclose(prime);
+	fclose(out);
 	return 0;
 }
