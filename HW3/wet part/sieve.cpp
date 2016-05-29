@@ -1,7 +1,6 @@
 
 
 #include <stdlib.h>
-#include <map>
 #include <pthread.h>
 #include "lock_list.h"
 
@@ -11,13 +10,13 @@ using namespace std;
 
 
 // get a lock list and a numebr N (th emaximum element of the list)
-void SievePerThread(Lock_list<int> list, int N,FILE* out) {
+void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 	Node<int>* current;
 	Node<int>* candidate;
 	candidate = current = list.lockFirst();
 	int p = **current;
 	bool sqr = false;
-
+	bool firstTime = true;
 	while (candidate) {//for each prime candidate
 		current = list.lockCurrent(candidate);
 		p = **current;
@@ -32,10 +31,20 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out) {
 			if ((**current % p) == 0){// if current divides p
 				if (**current == (p*p)) { // if we reached p^2 mark it and go on
 					sqr = true;
-					fprintf(out, "prime %d\n", p);
+					if (firstTime == true) {
+						fprintf(out, "prime %d", p);
+						firstTime = false;
+					}else {
+						fprintf(out, "\nprime %d", p);
+					}
+					if (p == 2) {
+						fprintf(prime, "%d", p);
+					}else {
+						fprintf(prime, "\n%d", p);
+					}
 				}
 				//get the next and remove node
-				fprintf(out, "%d\n", **current);
+				fprintf(out, "\n%d", **current);
 
 				list.lockNext(current);
 				list.doRemove(current);
