@@ -122,7 +122,7 @@ int test_doremove(){
 	node = list.lockNext(node); // should point to 2
 	ASSERT_TEST(**node == 2);
 	// 0,1,3...,9
-	list.doRemove(node);
+	node=list.doRemove(node);
 	ASSERT_TEST(**node == 1);
 	node = list.lockNext(node);
 	ASSERT_TEST(**node == 3);
@@ -135,7 +135,7 @@ int test_doremove(){
 	list.unlockNext(node);
 	list.unlockCurrent(node);
 	// 0,1,3,..,7,9
-	list.doRemove(node);
+	node=list.doRemove(node);
 	ASSERT_TEST(**node == 7);
 	node = list.lockNext(node);
 	ASSERT_TEST(**node == 9);
@@ -143,7 +143,7 @@ int test_doremove(){
 
 	node = list.lockFirst();
 	ASSERT_TEST(**node == 0);
-	list.doRemove(node);
+	node = list.doRemove(node);
 	ASSERT_TEST(node==NULL);
 
 	node = list.lockFirst();

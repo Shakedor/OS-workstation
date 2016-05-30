@@ -40,6 +40,7 @@ public:
 	Node(const T newData){
 		this->data = newData;
 		this->next = NULL;
+		this->prev = NULL;
 		this->lock = &mutex;
 		int res = 0;
 		pthread_mutexattr_t attr;
@@ -130,10 +131,10 @@ public:
 	void insertAfterCurrent(T& data, Node<T>* curr);
 	
 	//current wil point to prev after removal (lock prev and next)
-	void remove(Node<T>* curr);
+	Node<T>* remove(Node<T>* curr);
 	//removes a given node assuming it and its prev and next are locked by current thread.
 	//returns a node to the prev unless removed first in which case returns NULL
-	void doRemove(Node<T>* curr);
+	Node<T>* doRemove(Node<T>* curr);
 
 
 	// move iterator 
@@ -224,7 +225,7 @@ void Lock_list<T>::insertLast(T& data){
 
 	if (!isOnlyNode){//link 
 		newNode->prev = last;
-		first->next = newNode;
+		last->next = newNode;
 		
 	}
 	//update last
@@ -320,7 +321,7 @@ void Lock_list<T>::insertAfterCurrent(T& data, Node<T>* curr){
 
 
 template<class T>
-void Lock_list<T>::remove(Node<T>* curr){
+Node<T>* Lock_list<T>::remove(Node<T>* curr){
 	//check if current has prevs or nexts
 	int hasNext = (curr->next != NULL);
 	int hasPrev = (curr->prev != NULL);
@@ -336,13 +337,13 @@ void Lock_list<T>::remove(Node<T>* curr){
 		pthread_mutex_lock(curr->next->lock);
 	}
 
-	doRemove(curr);
+	return doRemove(curr);
 	
 
 }
 
 template<class T>
-void Lock_list<T>::doRemove(Node<T>* curr){
+Node<T>* Lock_list<T>::doRemove(Node<T>* curr){
 	//check if current has prevs or nexts
 	int hasNext = (curr->next != NULL);
 	int hasPrev = (curr->prev != NULL);
@@ -367,16 +368,12 @@ void Lock_list<T>::doRemove(Node<T>* curr){
 	}
 	//unlock current and delete it
 	//assign next to current
-	Node<T> *temp = curr;
-
+	Node<T> *temp = curr->prev;		// will be null if no prev
+	
 	pthread_mutex_unlock(curr->lock);
-	temp = curr->prev;
 	delete curr;
-	curr = temp;
-
-
 	size--;
-	return;
+	return temp;
 }
 
 template<class T>
