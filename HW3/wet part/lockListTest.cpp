@@ -157,7 +157,7 @@ int test_doremove(){
 }
 
 
-int main(){
+int main2(){
 	printf("0\n");
 	RUN_TEST(test_size);
 	printf("1\n");

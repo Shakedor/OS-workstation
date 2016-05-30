@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "lock_list.h"
+#include <stdio.h>
 
 using namespace std;
 
@@ -10,7 +11,7 @@ using namespace std;
 
 typedef struct ArgThread {
 	int N;
-	List<int> list;
+	Lock_list<int> list;
 	FILE* prime;
 	FILE* out;
 }ArgThread;
@@ -32,7 +33,7 @@ int main(int argc, char* argv[]) {
 
 	//the number of threads.
 	int T = atoi(argv[2]);
-	List<int> list = new List<int>();
+	Lock_list<int> list = new Lock_list<int>();
 	Node<int>* current;
 
 	//initialize the list with the values [1...N].
