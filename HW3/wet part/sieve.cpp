@@ -3,12 +3,11 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "lock_list.h"
+#include <stdio.h>
 
 
 using namespace std;
-
-
-
+/*
 // get a lock list and a numebr N (th emaximum element of the list)
 void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 	Node<int>* current;
@@ -69,3 +68,4 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 	}
 
 }
+*/
