@@ -51,14 +51,14 @@ void SievePerThread(Lock_list<int>* list, int N,FILE* out, FILE* prime) {
 			}
 
 			//if we passed p^2 without seeing it then other thread handling this candidate
-			if (sqr == false && (**current > (p*p))){
+			else if (sqr == false && (**current > (p*p))){
 				list->unlockPrev(current);
 				list->unlockCurrent(current);
 				break;
+			} else {
+
+				list->unlockPrev(current);
 			}
-
-			list->unlockPrev(current);
-
 		}//end of current while meaning we reached end of list
 
 
