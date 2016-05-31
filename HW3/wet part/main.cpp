@@ -54,7 +54,7 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 				fprintf(out, "\n%d", **current);
 
 				list.lockNext(current);
-				list.doRemove(current);
+				current=list.doRemove(current);
 				list.unlockNext(current);
 			}
 
@@ -72,6 +72,7 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 		candidate = list.lockNext(candidate);
 		list.unlockPrev(candidate);
 		list.unlockCurrent(candidate);
+		sqr = false;
 
 	}
 
@@ -124,7 +125,7 @@ int main(int argc, char* argv[]) {
 
 	delete[] threadArray;
 	delete list;
-	delete current;
+	
 	fclose(prime);
 
 	return 0;
