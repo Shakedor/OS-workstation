@@ -106,14 +106,18 @@ int main(int argc, char* argv[]) {
 
 	//an array of all the threads id's.
 	pthread_t* threadArray = new pthread_t[T];
-
+	ArgThread* arg = new ArgThread[T];
 	//creating T threads with the right arguments.
 	for (int i = 0; i < T; i++) {
 		char filename[sizeof ("thread-0.log")];
 		sprintf(filename, "thread-%d.log", i);
 		out = fopen(filename,"w");
-		ArgThread arg = {N, list, prime, out};
-		pthread_create((pthread_t*)&threadArray[i], NULL, threadFunc, (void *)&arg);
+		arg[i].N = N;
+		arg[i].list = list;
+		arg[i].prime = prime;
+		arg[i].out = out;
+		//arg[i] = {N, list, prime, out};
+		pthread_create((pthread_t*)&threadArray[i], NULL, threadFunc, (void *)&arg[i]);
 	}
 	for (int i = 0; i < T; i++) {
 		pthread_join(threadArray[i], NULL);
@@ -135,6 +139,7 @@ int main(int argc, char* argv[]) {
 	
 
 	delete[] threadArray;
+	delete[] arg;
 	delete list;
 	
 	fclose(prime);
