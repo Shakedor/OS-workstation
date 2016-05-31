@@ -24,7 +24,7 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 	int p = **current;
 	bool sqr = false;
 	bool firstTime = true;
-	while (candidate) {//for each prime candidate
+	while ((**candidate)*(**candidate)<=N) {//for each prime candidate until ceil of sqrt N
 		current = list.lockCurrent(candidate);
 		p = **current;
 
@@ -38,20 +38,10 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 			if ((**current % p) == 0){// if current divides p
 				if (**current == (p*p)) { // if we reached p^2 mark it and go on
 					sqr = true;
-					if (firstTime == true) {
-						fprintf(out, "prime %d", p);
-						firstTime = false;
-					}else {
-						fprintf(out, "\nprime %d", p);
-					}
-					if (p == 2) {
-						fprintf(prime, "%d", p);
-					}else {
-						fprintf(prime, "\n%d", p);
-					}
+					fprintf(out, "prime %d\n", p);
 				}
 				//get the next and remove node
-				fprintf(out, "\n%d", **current);
+				fprintf(out, "%d\n", **current);
 
 				list.lockNext(current);
 				current=list.doRemove(current);
@@ -65,7 +55,8 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 				break;
 			}
 
-		}//end of current while
+		}//end of current while meaning we reached end of list
+
 
 		//update candidate
 		candidate = list.lockCurrent(candidate);
@@ -96,13 +87,14 @@ int main(int argc, char* argv[]) {
 	//the number of threads.
 	int T = atoi(argv[2]);
 	Lock_list<int>* list = new Lock_list<int>;
-	Node<int>* current;
+	//Node<int>* current;
 
 	//initialize the list with the values [1...N].
 	for (int i = 2; i <= N; i++){
 		list->insertLast(i);
 		//TOCHECK  list.unlockCurrent(current);
 	}
+	//TODO add io channel check
 	FILE* prime = fopen("primes.txt", "w");
 	FILE* out;
 
@@ -122,6 +114,19 @@ int main(int argc, char* argv[]) {
 	}
 	//TOCHECK where are you waiting for the threads to finish?
 	//why are you closing the prime IO and the last out IO.
+	
+	//Loop over entire list and print primes to prime.txt
+
+	int x = 0;
+	Node<int> **p_curr;
+	list->iterFirst(p_curr);
+	while ((*p_curr)!=NULL) {
+		x = ***p_curr;
+		fprintf(prime, "%d\n", x);
+		list->iterNext(p_curr);
+	}
+
+	
 
 	delete[] threadArray;
 	delete list;

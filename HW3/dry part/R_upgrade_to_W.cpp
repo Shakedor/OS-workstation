@@ -39,8 +39,12 @@ bool upgrade_to_write_lock()
 	}
 
 	//TODO check current is a reader and not a writer
+	if (number_of_writers > 0){
+		// cant be a reader since there is a writer active so either we are non readers or are the writer itself
+		return 0;
+	}
 
-	while (number_of_readers > 1 || number_of_writers > 0){
+	while (number_of_readers != 1 && number_of_writers != 0){
 		pthread_cond_wait(&R_to_W_condition, &global_lock);
 	}
 
@@ -92,4 +96,4 @@ void write_unlock() {
 		pthread_cond_signal(&writers_condition);
 	}
 	pthread_mutex_unlock(&global_lock);
-}
+}
