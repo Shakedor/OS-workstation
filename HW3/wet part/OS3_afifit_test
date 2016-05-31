@@ -1,0 +1,27 @@
+#!/bin/bash
+echo Making project using Makefile
+make
+echo Project built. You somehow remember how to create a makefile..
+echo
+echo Running project 
+./main $1 $2
+echo Project finished running.
+echo
+echo Running Ofri test...
+python test.py
+echo Ofri Done. Check result yourself...
+echo
+echo Running Dor Pizza test....
+python py_primes.py
+diff py_primes.txt primes.log
+echo Dor test finished. Check result yourself.. should be empty
+echo
+cat thread-* >> all_threads
+echo Compiling Gal test..
+g++ -lpthread -std=c++0x gal_scripting.cpp  -o gal_part_checking
+echo Gal compiled. Running:
+./gal_part_checking
+rm all_threads
+echo Gal Done.
+echo
+echo END OF TEST. LALALALALALALALA

@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
 		//TOCHECK  list.unlockCurrent(current);
 	}
 	//TODO add io channel check
-	FILE* prime = fopen("primes.txt", "w");
+	FILE* prime = fopen("primes.log", "w");
 	FILE* out;
 
 	//an array of all the threads id's.
@@ -103,8 +103,8 @@ int main(int argc, char* argv[]) {
 
 	//creating T threads with the right arguments.
 	for (int i = 1; i <= T; i++) {
-		char filename[sizeof ("thread-0.txt")];
-		sprintf(filename, "thread-%d.txt", i);
+		char filename[sizeof ("thread-0.log")];
+		sprintf(filename, "thread-%d.log", i);
 		out = fopen(filename,"w");
 		ArgThread arg = {N, list, prime, out};
 		pthread_create((pthread_t*)&threadArray[i], NULL, threadFunc, (void *)&arg);
