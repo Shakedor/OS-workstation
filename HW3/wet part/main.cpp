@@ -22,11 +22,13 @@ void SievePerThread(Lock_list<int>* list, int N,FILE* out, FILE* prime) {
 	Node<int>* candidate;
 	candidate = current = list->lockFirst();
 	int p = **current;
+	list->unlockCurrent(candidate);
 	bool sqr = false;
 	bool firstTime = true;
-	while ((**candidate)*(**candidate)<=N) {//for each prime candidate until ceil of sqrt N
+	while (p*p<=N) {//for each prime candidate until ceil of sqrt N
+		printf("thread %p is in candidate %d\n", pthread_self(), **candidate);
 		current = list->lockCurrent(candidate);
-		p = **current;
+		
 
 		while (current){//for each current in a candidate run
 			current = list->lockNext(current);
@@ -55,12 +57,15 @@ void SievePerThread(Lock_list<int>* list, int N,FILE* out, FILE* prime) {
 				break;
 			}
 
+			list->unlockPrev(current);
+
 		}//end of current while meaning we reached end of list
 
 
 		//update candidate
 		candidate = list->lockCurrent(candidate);
 		candidate = list->lockNext(candidate);
+		p = **candidate;
 		list->unlockPrev(candidate);
 		list->unlockCurrent(candidate);
 		sqr = false;
@@ -77,6 +82,7 @@ void* threadFunc(void* arg) {
 	ArgThread argTh = *((ArgThread*) arg);
 	SievePerThread(argTh.list, argTh.N, argTh.out, argTh.prime);
 	fclose(argTh.out);
+	printf("returning from thread %p\n", pthread_self());
 	return NULL;
 }
 
@@ -102,14 +108,16 @@ int main(int argc, char* argv[]) {
 	pthread_t* threadArray = new pthread_t[T];
 
 	//creating T threads with the right arguments.
-	for (int i = 1; i <= T; i++) {
+	for (int i = 0; i < T; i++) {
 		char filename[sizeof ("thread-0.log")];
 		sprintf(filename, "thread-%d.log", i);
 		out = fopen(filename,"w");
 		ArgThread arg = {N, list, prime, out};
+		printf("creating thread num %d \n", i);
 		pthread_create((pthread_t*)&threadArray[i], NULL, threadFunc, (void *)&arg);
 	}
-	for (int i = 1; i <= T; i++) {
+	for (int i = 0; i < T; i++) {
+		printf("waiting for thread %d \n", i);
 		pthread_join(threadArray[i], NULL);
 	}
 	//TOCHECK where are you waiting for the threads to finish?
