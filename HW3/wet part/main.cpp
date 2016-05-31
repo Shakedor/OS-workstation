@@ -17,21 +17,21 @@ typedef struct ArgThread {
 }ArgThread;
 
 // get a lock list and a numebr N (th emaximum element of the list)
-void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
+void SievePerThread(Lock_list<int>* list, int N,FILE* out, FILE* prime) {
 	Node<int>* current;
 	Node<int>* candidate;
-	candidate = current = list.lockFirst();
+	candidate = current = list->lockFirst();
 	int p = **current;
 	bool sqr = false;
 	bool firstTime = true;
 	while ((**candidate)*(**candidate)<=N) {//for each prime candidate until ceil of sqrt N
-		current = list.lockCurrent(candidate);
+		current = list->lockCurrent(candidate);
 		p = **current;
 
 		while (current){//for each current in a candidate run
-			current = list.lockNext(current);
+			current = list->lockNext(current);
 			if (current == NULL){// if end of list
-				list.unlockLast();
+				list->unlockLast();
 				break;
 			}
 
@@ -43,15 +43,15 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 				//get the next and remove node
 				fprintf(out, "%d\n", **current);
 
-				list.lockNext(current);
-				current=list.doRemove(current);
-				list.unlockNext(current);
+				list->lockNext(current);
+				current = list->doRemove(current);
+				list->unlockNext(current);
 			}
 
 			//if we passed p^2 without seeing it then other thread handling this candidate
 			if (sqr == false && (**current > (p*p))){
-				list.unlockPrev(current);
-				list.unlockCurrent(current);
+				list->unlockPrev(current);
+				list->unlockCurrent(current);
 				break;
 			}
 
@@ -59,10 +59,10 @@ void SievePerThread(Lock_list<int> list, int N,FILE* out, FILE* prime) {
 
 
 		//update candidate
-		candidate = list.lockCurrent(candidate);
-		candidate = list.lockNext(candidate);
-		list.unlockPrev(candidate);
-		list.unlockCurrent(candidate);
+		candidate = list->lockCurrent(candidate);
+		candidate = list->lockNext(candidate);
+		list->unlockPrev(candidate);
+		list->unlockCurrent(candidate);
 		sqr = false;
 
 	}
@@ -75,7 +75,7 @@ void* threadFunc(void* arg);
 
 void* threadFunc(void* arg) {
 	ArgThread argTh = *((ArgThread*) arg);
-	SievePerThread(*(argTh.list), argTh.N, argTh.out, argTh.prime);
+	SievePerThread(argTh.list, argTh.N, argTh.out, argTh.prime);
 	fclose(argTh.out);
 	return NULL;
 }
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
 	//the number of threads.
 	int T = atoi(argv[2]);
 	Lock_list<int>* list = new Lock_list<int>;
-	//Node<int>* current;
+	Node<int>* current;
 
 	//initialize the list with the values [1...N].
 	for (int i = 2; i <= N; i++){
@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
 	//Loop over entire list and print primes to prime.txt
 
 	int x = 0;
-	Node<int> **p_curr;
+	Node<int> **p_curr=&current;
 	list->iterFirst(p_curr);
 	while ((*p_curr)!=NULL) {
 		x = ***p_curr;
