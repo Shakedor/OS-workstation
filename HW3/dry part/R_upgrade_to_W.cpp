@@ -35,13 +35,12 @@ bool upgrade_to_write_lock()
 	//if the current thread is not upgradable, return 0;
 	if (!pthread_equal(upgradeAble, pthread_self())){
 		pthread_mutex_unlock(&global_lock);
-		return 0;
+		return false;
 	}
 
-	//TODO check current is a reader and not a writer
 	if (number_of_writers > 0){
 		// cant be a reader since there is a writer active so either we are non readers or are the writer itself
-		return 0;
+		return false;
 	}
 
 	while (number_of_readers != 1 && number_of_writers != 0){
@@ -92,6 +91,8 @@ void write_unlock() {
 	pthread_mutex_lock(&global_lock);
 	number_of_writers--;
 	if (number_of_writers == 0) {
+		if (number_of_readers == 1)
+			pthread_cond_signal(&R_to_W_condition);
 		pthread_cond_broadcast(&readers_condition);
 		pthread_cond_signal(&writers_condition);
 	}
