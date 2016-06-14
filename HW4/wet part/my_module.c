@@ -11,6 +11,9 @@ int entropy_count=0;
 char* entropy_pool = NULL;
 //TODO maybe lock the pool and count
 
+#define READ_CHUNK_SIZE 20
+#define WRITE_CHUNK_SIZE 64
+
 struct file_operations my_fops = {
 .open= my_open,
 .release=my_release,
@@ -73,69 +76,124 @@ int my_release( struct inode *inode, struct file *filp ) {
 
 ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 	//if size is 0 return 0
+	if(count <=0){
+		return 0;
+	}
 	
 	// if entropy_count less than zero, add yourself to waitqueue
 	// upon waking up, check that the entropy count is right and thus you were 
 	//wakened by correct signal, else return -ERESTARTSYS.
-
+	if(entropy_count<=8){
+		return -ERESTARTSYS;
+	}
 	
 	//now we have at least 8 entropy
 	// get min of buf and entropy bytes
 	
+	int E = entropy_count/8 ; // int division so it will floor the result
+	E =  (E < count ) ? E : count ;
+	
 	//subtract 8n from entropy count
+	entropy_count -= 8*E;
 	
 	//dividing buffer to 20 bytes chunks
 	//get num of chunks
+	int num_chunks= E/READ_CHUNK_SIZE + (READ_CHUNK_SIZE - 1 + E%READ_CHUNK_SIZE)/READ_CHUNK_SIZE ; 
 	//get last chunk size
+	int last_chunk_size=E%READ_CHUNK_SIZE;
 	//make tmp buffer of size 21
-	
+	char tmp[READ_CHUNK_SIZE+1]={0}; //TODO check this initializes buffer properly
+	int status=0;
+	int chunk_size=READ_CHUNK_SIZE;
 	//loop for each chunk in buffer
+	for(int i=0;i<num_chunks;i++){
 		//hash_pool
-		
+		hash_pool (entropy_pool, tmp);
 		//mix tmp 20 pooldata
+		mix (tmp, READ_CHUNK_SIZE, entropy_pool);
+		
 		
 		//copy tmp to chunk of buf with correct size
-		//if failed return -EFAULT
+		//if failed return -EFAULT		
+		if(i+1==num_chunks){//last chunk
+			chunk_size=last_chunk_size;
+		}
+		status=copy_to_user(buf[i+READ_CHUNK_SIZE],tmp,chunk_size);
 		
+		if(status!=0){
+			return -EFAULT;
+		}
+	}		
 	//return sum of size of chunks
+	
+	return E;
 
 }
 
 ssize_t my_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos) {
 	//divide buf to 64 bytes chunks
 	//get num of chunks
+	int num_chunks= E/WRITE_CHUNK_SIZE + (WRITE_CHUNK_SIZE - 1 + E%WRITE_CHUNK_SIZE)/WRITE_CHUNK_SIZE ; 
 	//get last chunk size
-	//loop for each chunk in buffer
-	//copy from user the chunk
-	//if copy from user failed return -EFAULT
+	int last_chunk_size=E%WRITE_CHUNK_SIZE;
+	//make tmp buffer of size 65
+	char tmp[WRITE_CHUNK_SIZE+1]={0}; //TODO check this initializes buffer properly
+	int status=0;
+	int chunk_size=WRITE_CHUNK_SIZE;
 	
-	//mix each chunk
-
+	//loop for each chunk in buffer
+	for(int i=0;i<num_chunks;i++){
+		//copy from user the chunk
+		if(i+1==num_chunks){//last chunk
+			chunk_size=last_chunk_size;
+		}
+		status=copy_from_user(tmp,buf[i+READ_CHUNK_SIZE],chunk_size);
+		//if copy from user failed return -EFAULT
+		if(status!=0){
+			return -EFAULT;
+		}
+		//mix each chunk
+		mix (tmp, READ_CHUNK_SIZE, entropy_pool);
+		
+	}
+	//return n
+	return count;
+	
+	
 	//TODO check desired state of pooldata if non first chunk failed to copy
 }
 
 
 int my_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg) {
+	int status=0;
 	switch( cmd ) {//TODO change ioctl
-		case MY_OP1:
-		//handle op1;
+		case RNDGETENTCNT:
+		status=get_current_entropy((int*)arg));
 		break;
-		case MY_OP2:
-		//handle op2;
+		case RNDCLEARPOOL:
+		status=clear_pool();
 		break;
-		default: return -ENOTTY;
+		case RNDADDENTROPY:
+		status=add_entropy(inode,flip,(struct rand_pool_info*)arg);
+		break;
+		default: return -EINVAL;
 	}
-	return 0;
+	return status;
 }
 
 static int get_current_entropy(int* p){
 	// check if valid user space
-	//else return EFAULT
-	
+	//else return EFAULT	
 	// put entropy count in p
-	
 	//return 0
 	
+	int status = 0;
+	status=copy_to_user(p,&entropy_count,sizeof(int));
+	if(status!=0){
+		return -EFAULT;
+	}
+	
+	return status;
 	
 }
 
@@ -143,8 +201,14 @@ static int get_current_entropy(int* p){
 static int clear_pool(){
 	// check if you are admin privilage
 	//if not return _EPERM
+	if(capable(CAP_SYS_ADMIN)==0){
+		return -EPERM;
+	}
 	
 	// reset entropy count // maybe need lock
+	
+	entropy_count=0;
+	return 0;
 	
 	
 }
@@ -153,13 +217,31 @@ static int clear_pool(){
 static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_info *p){
 	// check if you are admin privilage
 	//if not return _EPERM
+	if(capable(CAP_SYS_ADMIN)==0){
+		return -EPERM;
+	}
+	//read data from rand_pool_info, check that its valid.
+	// else return -EFAULT
+	struct rand_pool_info my_p;
+	
+	int status = 0;
+	status=copy_to_user(p,&entropy_count,sizeof(struct rand_pool_info));
+	if(status!=0){
+		return -EFAULT;
+	}
+	if(my_p.entropy < 0){
+		return -EINVAL;
+	}
 	
 	//increase entropy_count by p->entropy_count
 	//ceil it to 4096
+	entropy_count+=my_p.entropy_count;
+	if(entropy_count>4096){
+		entropy_count=4096;
+	}
 	
 	// do write with p->buff and p->buff size
-	// reset entropy count // maybe need lock
-	
+		return my_write(filp, my_p.buf, my_p.buf_size, filp->f_pos);
 	
 }
 
