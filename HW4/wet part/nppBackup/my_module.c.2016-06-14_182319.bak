@@ -241,12 +241,7 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	}
 	
 	// do write with p->buff and p->buff size
-		status = my_write(filp, my_p.buf, my_p.buf_size, filp->f_pos);
-		
-	//wake up waiting processes	
-	wake_up_interruptible(&my_waitqueue);
-	
-	return status;
+		return my_write(filp, my_p.buf, my_p.buf_size, filp->f_pos);
 	
 }
 
