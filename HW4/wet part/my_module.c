@@ -80,9 +80,17 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 		return 0;
 	}
 	
-	// if entropy_count less than zero, add yourself to waitqueue
+	// if entropy_count less than 8, add yourself to waitqueue
+	if (entropy_count < 8){
+		 wait_event_interruptible(my_waitqueue, entropy_count>=8);
+	}
 	// upon waking up, check that the entropy count is right and thus you were 
 	//wakened by correct signal, else return -ERESTARTSYS.
+
+	if(signal_pending(current)){
+		return -ERESTARTSYS;
+	}
+
 	if(entropy_count<=8){
 		return -ERESTARTSYS;
 	}

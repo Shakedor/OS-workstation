@@ -30,6 +30,7 @@ MODULE_AUTHOR( "Dean and Aviad" );
 
 int entropy_count=0;
 char* entropy_pool = NULL;
+wait_queue_head_t my_waitqueue;
 //TODO maybe lock the pool and count
 
 struct file_operations my_fops = {
@@ -60,6 +61,9 @@ int init_module( void ) {
 	for (int i =0; i<512;i++){
 		entropy_pool[i]=0;
 	}
+
+	init_waitqueue_head(&my_waitqueue);
+	// filp->private_data = &my_waitqueue;
 	
 	entropy_count=0;
 	
@@ -74,25 +78,19 @@ void cleanup_module( void ) {
 
 	unregister_chrdev( MY_MAJOR, MY_MODULE_NAME);
 	
+	// close the wait queue
+	wake_up_interruptible(&my_waitqueue);
+
 	//free entropy pool
 	kfree(entropy_pool);
 	return;
 }
 
 int my_open( struct inode *inode, struct file *filp ) {
-	//initialize waitqueue
-	wait_queue_head_t my_waitqueue;
-	init_waitqueue_head(&my_waitqueue);
-	filp->private_data = &my_waitqueue;
-	// and condition
 	return 0;
 }
 
 int my_release( struct inode *inode, struct file *filp ) {
-	//destroy and clear waitqueue
-	wake_up_interruptible(&my_waitqueue);
-
-	// and condition
 	return 0;
 }
 

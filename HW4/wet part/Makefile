@@ -3,4 +3,7 @@ include $(KERNELDIR)/.config
 CFLAGS = -D__KERNEL__ -DMODULE -I$(KERNELDIR)/include -O -Wall
 all: srandom.o
 
+mymodule.o: mix.o sha1.o my_module.o
+	$(LD) -r $^ -o $@
+
 
