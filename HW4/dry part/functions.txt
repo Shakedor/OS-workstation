@@ -1,0 +1,60 @@
+
+
+int double_wait (int fd1, int fd2){
+	
+	//initialize a poolfd array called fds
+	struct pollfd fds_arr[2],	*fds = fds_arr;
+	//put the fdnums in the file descriptor field
+	(fds_arr[0]).fds = fd1;
+	(fds_arr[1]).fds = fd2;
+	//put the POLLIN num in the events field
+	(fds_arr[0]).events = POLLIN;
+	(fds_arr[1]).events = POLLIN;
+	//call poll
+	return poll (fds, 2, -1);
+}
+
+int double_wait_safe(int fd1, int fd2){
+	//initialize new sig set with all but SIGUSR1
+	sigset_t  newmask;
+	sigfillset(&newmask);
+	sigdelset(&newmask,SIGUSR1);
+	//initialize a poolfd array called fds
+	struct pollfd fds_arr[2],	*fds = fds_arr;
+	//put the fdnums in the file descriptor field
+	(fds_arr[0]).fds = fd1;
+	(fds_arr[1]).fds = fd2;
+	//put the POLLIN num in the events field
+	(fds_arr[0]).events = POLLIN;
+	(fds_arr[1]).events = POLLIN;
+	//call poll
+	return ppoll (fds, 2, -1, &newmask);
+}
+
+#include <sched.h>
+int make_me_FIFO(){
+	struct sched_param param;
+	param.sched_priority=0;
+	sched_setscheduler(0,SCHED_FIFO,&param);
+	
+}
+#include "/dev/srandom"
+#include <sched.h>
+int make_me_FIFO(){
+	int status;
+	status=init_module();
+	if(status!=0){
+		return -1;
+	}
+	struct sched_param param;
+	param.sched_priority=0;
+	
+	while(sched_setscheduler(0,SCHED_FIFO,&param)!=0){
+		read(NULL,__ADDR__,4,NULL);
+	}
+	
+	
+
+	
+	
+}
