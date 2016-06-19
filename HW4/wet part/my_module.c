@@ -1,7 +1,32 @@
+#include <linux/ctype.h>
+#include <linux/config.h>
+#include <linux/module.h>
+#include <linux/kernel.h>  	
+#include <linux/slab.h>
+#include <linux/fs.h>       		
+#include <linux/errno.h>  
+#include <linux/types.h> 
+#include <linux/proc_fs.h>
+#include <linux/fcntl.h>
+#include <asm/system.h>
+#include <asm/uaccess.h>
+#include <linux/types.h> 		// needed for
+#include <linux/signal.h>		// using signals
+#include <linux/ioctl.h>		// for ioctl constants
+#include <asm/termios.h>
+//#include <linux/random.h>
+#include "my_module.h"
+#include "sha1.h"
+#include "mix.h"
+#include <linux/wait.h>
+#include <stdint.h>
+
 
 #define MY_MODULE_NAME "MY_MODULE"
 
-MODULE_LICENSE( "GPL" );
+#define MY_MAJOR 62
+
+MODULE_LICENSE("GPL");
 
 MODULE_AUTHOR( "Dean and Aviad" );
 
@@ -9,10 +34,30 @@ MODULE_AUTHOR( "Dean and Aviad" );
 
 int entropy_count=0;
 char* entropy_pool = NULL;
+DECLARE_WAIT_QUEUE_HEAD(my_waitqueue);
 //TODO maybe lock the pool and count
+
+struct rand_pool_info {
+	int     entropy_count;
+    int     buf_size;
+    __u32   buf[0];
+};
 
 #define READ_CHUNK_SIZE 20
 #define WRITE_CHUNK_SIZE 64
+
+
+//declaration of functions
+int init_module(void);
+void cleanup_module(void);
+int my_open( struct inode *inode, struct file *filp );
+int my_release( struct inode *inode, struct file *filp );
+ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos );
+ssize_t my_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos);
+int my_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg);
+static int get_current_entropy(int* p);
+static int clear_pool();
+static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_info *p);
 
 struct file_operations my_fops = {
 .open= my_open,
@@ -28,21 +73,24 @@ struct file_operations my_fops = {
 
 int init_module( void ) {
 	//change to static loading
-	my_major = register_chrdev( my_major, MY_MODULE_NAME, &my_fops );
-	if( my_major < 0 ) {
-		printk( KERN_WARNING "can't get dynamic major\n" );
-		return my_major;
-	}
+	register_chrdev( MY_MAJOR, MY_MODULE_NAME, &my_fops );
 	
 	// allocate entropy pool
 	entropy_pool=kmalloc(512*sizeof(char),GFP_KERNEL);
 	
 	//check malloc
+	if (entropy_pool == NULL) {
+		return -EFAULT;
+	}
 	
 	// init it and counter to 0
-	for (int i =0; i<512;i++){
+	int i;
+	for (i =0; i<512;i++){
 		entropy_pool[i]=0;
 	}
+
+	init_waitqueue_head(&my_waitqueue);
+	// filp->private_data = &my_waitqueue;
 	
 	entropy_count=0;
 	
@@ -54,8 +102,12 @@ int init_module( void ) {
 
 void cleanup_module( void ) {
 	//change to static unloading
-	unregister_chrdev( my_major, MY_MODULE_NAME);
+
+	unregister_chrdev( MY_MAJOR, MY_MODULE_NAME);
 	
+	// close the wait queue
+	wake_up_interruptible(&my_waitqueue);
+
 	//free entropy pool
 	kfree(entropy_pool);
 	return;
@@ -114,7 +166,8 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 	int status=0;
 	int chunk_size=READ_CHUNK_SIZE;
 	//loop for each chunk in buffer
-	for(int i=0;i<num_chunks;i++){
+	int i;
+	for(i = 0; i < num_chunks; i++){
 		//hash_pool
 		hash_pool (entropy_pool, tmp);
 		//mix tmp 20 pooldata
@@ -126,7 +179,7 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 		if(i+1==num_chunks){//last chunk
 			chunk_size=last_chunk_size;
 		}
-		status=copy_to_user(buf[i+READ_CHUNK_SIZE],tmp,chunk_size);
+		status=copy_to_user((void*)(intptr_t)buf[i+READ_CHUNK_SIZE], (void*)(intptr_t)tmp, chunk_size);
 		
 		if(status!=0){
 			return -EFAULT;
@@ -139,6 +192,7 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 }
 
 ssize_t my_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos) {
+	int E = entropy_count/8 ;
 	//divide buf to 64 bytes chunks
 	//get num of chunks
 	int num_chunks= E/WRITE_CHUNK_SIZE + (WRITE_CHUNK_SIZE - 1 + E%WRITE_CHUNK_SIZE)/WRITE_CHUNK_SIZE ; 
@@ -150,12 +204,13 @@ ssize_t my_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos
 	int chunk_size=WRITE_CHUNK_SIZE;
 	
 	//loop for each chunk in buffer
-	for(int i=0;i<num_chunks;i++){
+	int i;
+	for(i = 0; i < num_chunks; i++){
 		//copy from user the chunk
 		if(i+1==num_chunks){//last chunk
 			chunk_size=last_chunk_size;
 		}
-		status=copy_from_user(tmp,buf[i+READ_CHUNK_SIZE],chunk_size);
+		status = copy_from_user((void*)(intptr_t)tmp, (void*)(intptr_t)buf[i + READ_CHUNK_SIZE], chunk_size);
 		//if copy from user failed return -EFAULT
 		if(status!=0){
 			return -EFAULT;
@@ -176,13 +231,13 @@ int my_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned 
 	int status=0;
 	switch( cmd ) {//TODO change ioctl
 		case RNDGETENTCNT:
-		status=get_current_entropy((int*)arg));
+		status=get_current_entropy((int*)arg);
 		break;
 		case RNDCLEARPOOL:
 		status=clear_pool();
 		break;
 		case RNDADDENTROPY:
-		status=add_entropy(inode,flip,(struct rand_pool_info*)arg);
+		status=add_entropy(inode,filp,(struct rand_pool_info*)arg);
 		break;
 		default: return -EINVAL;
 	}
@@ -237,7 +292,7 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	if(status!=0){
 		return -EFAULT;
 	}
-	if(my_p.entropy < 0){
+	if(my_p.entropy_count < 0){
 		return -EINVAL;
 	}
 	
@@ -249,7 +304,7 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	}
 	
 	// do write with p->buff and p->buff size
-		status = my_write(filp, my_p.buf, my_p.buf_size, filp->f_pos);
+	status = my_write(filp, (const char*)my_p.buf, my_p.buf_size, &(filp->f_pos));
 		
 	//wake up waiting processes	
 	wake_up_interruptible(&my_waitqueue);
