@@ -4,10 +4,10 @@
 
 #include <linux/ioctl.h>
 
-#define MAGIC_NUM 'r'
-#define RNDGETENTCNT _IOR(MAGIC_NUM,0,int)
-#define RNDCLEARPOOL _IO(MAGIC_NUM,1)
-#define RNDADDENTROPY _IO(MAGIC_NUM,2)
+//#define MAGIC_NUM 'r'
+//#define RNDGETENTCNT _IOR(MAGIC_NUM,0,int)
+//#define RNDCLEARPOOL _IO(MAGIC_NUM,1)
+//#define RNDADDENTROPY _IO(MAGIC_NUM,2)
 
 
 #endif

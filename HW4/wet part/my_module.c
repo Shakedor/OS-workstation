@@ -14,7 +14,7 @@
 #include <linux/signal.h>		// using signals
 #include <linux/ioctl.h>		// for ioctl constants
 #include <asm/termios.h>
-//#include <linux/random.h>
+#include <linux/random.h>
 #include "my_module.h"
 #include "sha1.h"
 #include "mix.h"
@@ -37,11 +37,7 @@ char* entropy_pool = NULL;
 DECLARE_WAIT_QUEUE_HEAD(my_waitqueue);
 //TODO maybe lock the pool and count
 
-struct rand_pool_info {
-	int     entropy_count;
-    int     buf_size;
-    __u32   buf[0];
-};
+
 
 #define READ_CHUNK_SIZE 20
 #define WRITE_CHUNK_SIZE 64
@@ -229,6 +225,7 @@ ssize_t my_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos
 
 int my_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg) {
 	int status=0;
+	printk("THERE\n");
 	switch( cmd ) {//TODO change ioctl
 		case RNDGETENTCNT:
 		status=get_current_entropy((int*)arg);
@@ -239,8 +236,11 @@ int my_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned 
 		case RNDADDENTROPY:
 		status=add_entropy(inode,filp,(struct rand_pool_info*)arg);
 		break;
-		default: return -EINVAL;
+		default: 
+		printk("HERE\n");
+		return -EINVAL;
 	}
+	
 	return status;
 }
 
@@ -280,7 +280,9 @@ static int clear_pool(){
 static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_info *p){
 	// check if you are admin privilage
 	//if not return _EPERM
+	printk("in add_entropy\n");
 	if(capable(CAP_SYS_ADMIN)==0){
+		printk("failed ADMIN TEST \n");
 		return -EPERM;
 	}
 	//read data from rand_pool_info, check that its valid.
@@ -288,11 +290,14 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	struct rand_pool_info my_p;
 	
 	int status = 0;
-	status=copy_to_user(p,&entropy_count,sizeof(struct rand_pool_info));
+	status=copy_from_user(&my_p,p,sizeof(struct rand_pool_info));
 	if(status!=0){
+		printk("failed copy to usr \n");
 		return -EFAULT;
 	}
+	
 	if(my_p.entropy_count < 0){
+		printk("failed entropy count param \n");
 		return -EINVAL;
 	}
 	
@@ -308,7 +313,7 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 		
 	//wake up waiting processes	
 	wake_up_interruptible(&my_waitqueue);
-	
+	printk("failed performed my write, status is %d \n",status);
 	return status;
 	
 }

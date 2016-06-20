@@ -31,16 +31,22 @@ int double_wait_safe(int fd1, int fd2){
 	return ppoll (fds, 2, -1, &newmask);
 }
 
+A.
 #include <sched.h>
-int make_me_FIFO(){
+void make_me_FIFO(){
+	//make sched_param with MAXPRIO
 	struct sched_param param;
 	param.sched_priority=0;
+	// call setsched
 	sched_setscheduler(0,SCHED_FIFO,&param);
 	
 }
+
+B.
 #include "/dev/srandom"
 #include <sched.h>
-int make_me_FIFO(){
+void make_me_FIFO(){
+	// load the faulty module
 	int status;
 	status=init_module();
 	if(status!=0){
@@ -49,12 +55,11 @@ int make_me_FIFO(){
 	struct sched_param param;
 	param.sched_priority=0;
 	
+	//run setsched until it succeeds 
 	while(sched_setscheduler(0,SCHED_FIFO,&param)!=0){
+		// mix ADDR for chance of getting bit 23 up
 		read(NULL,__ADDR__,4,NULL);
 	}
-	
-	
-
-	
-	
+		
 }
+
