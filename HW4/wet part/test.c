@@ -44,7 +44,6 @@ static void print_buf (const char *buf, size_t size)
 
 int main (int argc, char **argv)
 {
-	printf("hello\n");
 	int fd;
 	struct rand_pool_info *info;
 	char buf [40];

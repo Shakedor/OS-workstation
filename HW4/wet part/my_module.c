@@ -177,7 +177,7 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 		}
 		status=copy_to_user((void*)(intptr_t)buf[i+READ_CHUNK_SIZE], (void*)(intptr_t)tmp, chunk_size);
 		
-		if(status!=0){
+		if(status<0){
 			return -EFAULT;
 		}
 	}		
@@ -208,7 +208,7 @@ ssize_t my_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos
 		}
 		status = copy_from_user((void*)(intptr_t)tmp, (void*)(intptr_t)buf[i + READ_CHUNK_SIZE], chunk_size);
 		//if copy from user failed return -EFAULT
-		if(status!=0){
+		if(status<0){
 			return -EFAULT;
 		}
 		//mix each chunk
@@ -225,7 +225,6 @@ ssize_t my_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos
 
 int my_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg) {
 	int status=0;
-	printk("THERE\n");
 	switch( cmd ) {//TODO change ioctl
 		case RNDGETENTCNT:
 		status=get_current_entropy((int*)arg);
@@ -237,7 +236,6 @@ int my_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned 
 		status=add_entropy(inode,filp,(struct rand_pool_info*)arg);
 		break;
 		default: 
-		printk("HERE\n");
 		return -EINVAL;
 	}
 	
@@ -252,7 +250,7 @@ static int get_current_entropy(int* p){
 	
 	int status = 0;
 	status=copy_to_user(p,&entropy_count,sizeof(int));
-	if(status!=0){
+	if(status<0){
 		return -EFAULT;
 	}
 	
@@ -280,9 +278,9 @@ static int clear_pool(){
 static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_info *p){
 	// check if you are admin privilage
 	//if not return _EPERM
-	printk("in add_entropy\n");
+	//printk("in add_entropy\n");
 	if(capable(CAP_SYS_ADMIN)==0){
-		printk("failed ADMIN TEST \n");
+		//printk("failed ADMIN TEST \n");
 		return -EPERM;
 	}
 	//read data from rand_pool_info, check that its valid.
@@ -291,10 +289,12 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	
 	int status = 0;
 	status=copy_from_user(&my_p,p,sizeof(struct rand_pool_info));
-	if(status!=0){
-		printk("failed copy to usr \n");
+	if(status<0){
+		//printk("failed copy to usr \n");
 		return -EFAULT;
 	}
+	
+	
 	
 	if(my_p.entropy_count < 0){
 		printk("failed entropy count param \n");
@@ -309,11 +309,11 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	}
 	
 	// do write with p->buff and p->buff size
-	status = my_write(filp, (const char*)my_p.buf, my_p.buf_size, &(filp->f_pos));
+	status = my_write(filp, (const char*)p->buf, p->buf_size, &(filp->f_pos));
 		
 	//wake up waiting processes	
 	wake_up_interruptible(&my_waitqueue);
-	printk("failed performed my write, status is %d \n",status);
+	//printk("failed performed my write, status is %d \n",status);
 	return status;
 	
 }
