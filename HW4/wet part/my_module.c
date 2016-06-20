@@ -162,8 +162,13 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 	int status=0;
 	int chunk_size=READ_CHUNK_SIZE;
 	//loop for each chunk in buffer
-	int i;
+	int i,j;
 	for(i = 0; i < num_chunks; i++){
+		//reset tmp
+		for(j=0;j<READ_CHUNK_SIZE+1;j++){
+			tmp[j]=0;
+		}
+		
 		//hash_pool
 		hash_pool (entropy_pool, tmp);
 		//mix tmp 20 pooldata
