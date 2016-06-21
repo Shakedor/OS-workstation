@@ -142,13 +142,16 @@ int my_release( struct inode *inode, struct file *filp ) {
 
 ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 	//if size is 0 return 0
+	printk("inread \n");
 	if(count <=0){
 		return 0;
 	}
-	
+	printk("entropy count is now %d, going to reduce %d\n",entropy_count,count);
 	// if entropy_count less than 8, add yourself to waitqueue
 	if (entropy_count < 8){
+		printk("inwait \n");
 		 wait_event_interruptible(my_waitqueue, entropy_count>=8);
+		 printk("outwait \n");
 	}
 	// upon waking up, check that the entropy count is right and thus you were 
 	//wakened by correct signal, else return -ERESTARTSYS.
@@ -171,9 +174,12 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 	}else{
 		new_n=count;
 	}
+	printk("newcount is %d\n",new_n);
 	
 	//subtract 8n from entropy count
 	entropy_count -= 8*new_n;
+	
+	printk("new entropy  is %d\n",entropy_count);
 	
 	//dividing buffer to 20 bytes chunks
 	//get num of chunks
@@ -223,7 +229,7 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 		printk("out part read\n");
 	}
 	//return sum of size of chunks
-	
+	printk("outread \n");
 	return E;
 
 }
@@ -366,7 +372,7 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	
 	//increase entropy_count by p->entropy_count
 	//ceil it to 4096
-	entropy_count+=p->entropy_count;
+	entropy_count+=newcount;
 	if(entropy_count>4096){
 		entropy_count=4096;
 	}
@@ -375,7 +381,9 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	status = my_write(filp, (void*)(&p->buf), bufsize, &(filp->f_pos));
 	status=(status<0)?status:0;
 	//wake up waiting processes	
-	wake_up_interruptible(&my_waitqueue);
+	if(entropy_count>=8){
+		wake_up_interruptible(&my_waitqueue);
+	}
 	//printk("failed performed my write, status is %d \n",status);
 	return status;
 	
