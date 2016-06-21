@@ -1,5 +1,0 @@
-#!/bin/bash
-
-rmmod srandom
-rm -f /dev/srandom
-./test1.sh

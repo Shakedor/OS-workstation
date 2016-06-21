@@ -1,9 +1,0 @@
-#!/bin/bash
-
-rm -f my_module.o srandom.o
-make
-rmmod srandom
-rm -f dev
-insmod srandom.o
-mknod dev c 62 0
-./test dev
