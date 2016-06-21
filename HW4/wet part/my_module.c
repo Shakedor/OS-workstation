@@ -66,6 +66,16 @@ struct file_operations my_fops = {
 };
 
 
+void printarr(char* arr, int size,char* mes){
+	int i=0;
+	printk("%s\n",mes);
+	for(i=0;i<size;i++){
+		printk("%d",arr[i]);
+	}
+	printk("\n");
+}
+
+
 
 int init_module( void ) {
 	//change to static loading
@@ -162,26 +172,32 @@ ssize_t my_read( struct file *filp, char *buf, size_t count, loff_t *f_pos ) {
 	int status=0;
 	int chunk_size=READ_CHUNK_SIZE;
 	//loop for each chunk in buffer
-	int i,j;
+	printk("num_chunks is %d\n",num_chunks);
+	int i;
 	for(i = 0; i < num_chunks; i++){
 		//reset tmp
-		for(j=0;j<READ_CHUNK_SIZE+1;j++){
-			tmp[j]=0;
-		}
+
+		status=copy_from_user((void*)tmp, buf[i*READ_CHUNK_SIZE], chunk_size);
 		
+		if(status<0){
+			return -EFAULT;
+		}
 		//hash_pool
 		hash_pool (entropy_pool, tmp);
-		//mix tmp 20 pooldata
-		mix (tmp, READ_CHUNK_SIZE, entropy_pool);
+		printarr(tmp,READ_CHUNK_SIZE,"hashes tmp is now:");
 		
+		//mix tmp 20 pooldata
+		mix (tmp, chunk_size, entropy_pool);
+		
+		printarr(entropy_pool,512,"pool in read is");
 		
 		//copy tmp to chunk of buf with correct size
 		//if failed return -EFAULT		
-		if(i+1==num_chunks){//last chunk
+		if(last_chunk_size!=0 && i+1==num_chunks){//last chunk
 			chunk_size=last_chunk_size;
 		}
-		status=copy_to_user((void*)(intptr_t)buf[i+READ_CHUNK_SIZE], (void*)(intptr_t)tmp, chunk_size);
-		
+		status=copy_to_user((void*)buf[i*READ_CHUNK_SIZE], (void*)tmp, chunk_size);
+		printk("read status is %d\n",status);
 		if(status<0){
 			return -EFAULT;
 		}
@@ -208,19 +224,26 @@ ssize_t my_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos
 	int i;
 	for(i = 0; i < num_chunks; i++){
 		//copy from user the chunk
-		if(i+1==num_chunks){//last chunk
+		if(last_chunk_size!=0 && i+1==num_chunks){//last chunk
 			chunk_size=last_chunk_size;
 		}
-		status = copy_from_user((void*)(intptr_t)tmp, (void*)(intptr_t)buf[i + READ_CHUNK_SIZE], chunk_size);
+		status = copy_from_user(tmp, &(buf[i * WRITE_CHUNK_SIZE]), chunk_size);
+
 		//if copy from user failed return -EFAULT
 		if(status<0){
 			return -EFAULT;
 		}
 		//mix each chunk
-		mix (tmp, READ_CHUNK_SIZE, entropy_pool);
+		
+		printk("chunk size is %d and status is%d\n",chunk_size,status);
+		printarr(tmp,chunk_size,"temp in write is");
+		mix (tmp, chunk_size, entropy_pool);
+		printarr(entropy_pool,100,"entropy pool is:");
+		//printarrf(buf[i + WRITE_CHUNK_SIZE],chunk_size,"buff in write is");
 		
 	}
 	//return n
+	
 	return count;
 	
 	
@@ -262,6 +285,7 @@ static int get_current_entropy(int* p){
 	return status;
 	
 }
+
 
 
 static int clear_pool(){
@@ -308,24 +332,20 @@ static int add_entropy(struct inode *inode, struct file *filp,struct rand_pool_i
 	
 	//increase entropy_count by p->entropy_count
 	//ceil it to 4096
-	entropy_count+=my_p.entropy_count;
+	entropy_count+=p->entropy_count;
 	if(entropy_count>4096){
 		entropy_count=4096;
 	}
 	
 	// do write with p->buff and p->buff size
-	status = my_write(filp, (const char*)p->buf, p->buf_size, &(filp->f_pos));
-		
+	status = my_write(filp, (void*)(&p->buf), p->buf_size, &(filp->f_pos));
+	status=(status<0)?status:0;
 	//wake up waiting processes	
 	wake_up_interruptible(&my_waitqueue);
 	//printk("failed performed my write, status is %d \n",status);
 	return status;
 	
 }
-
-
-
-
 
 
 
